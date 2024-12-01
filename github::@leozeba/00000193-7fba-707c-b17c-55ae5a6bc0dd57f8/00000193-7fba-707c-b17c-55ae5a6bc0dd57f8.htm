@@ -1,0 +1,921 @@
+<!doctype html>
+<html class="no-js" lang="">
+
+<head>
+  <meta charset="utf-8">
+  <title>MEMORIAS | Your personal web3 database</title>
+  <meta name="description" content="Collect, manage, safeguard, augment & share data">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <meta name="google-signin-client_id" content="24613691161-3a990mj8uer0uero52cml7u34odspqe6.apps.googleusercontent.com">
+
+  <link rel="manifest" href="site.webmanifest">
+  <link rel="apple-touch-icon" href="themes/default/icon.png">
+  <!-- Place favicon.ico in the root directory -->
+  <link rel="shortcut icon" href="themes/default/favicon.ico" />
+
+  <!-- fontawesome.com -->
+  <!-- <link rel="stylesheet" href="themes/default/css/all.min.css"> -->
+  <!-- bulma.io -->
+  <!-- <link rel="stylesheet" href="themes/default/css/bulma.min.css"> -->
+  <!-- <link rel="stylesheet" href="themes/default/css/bulma-pageloader.min.css"> -->
+
+  <!-- highlight.min.js -->
+  <!-- <link rel="stylesheet" href="themes/default/css/styles/default.min.css"> -->
+
+  <!-- bundle.css -->
+  <link rel="stylesheet" href="themes/default/css/bundle.css">
+
+  <!-- memori.as -->
+  <link rel="stylesheet" href="themes/default/css/memori.as.css">
+
+  <style>
+    #recipients .button:hover {
+      color: var(--color-4) !important;
+    }
+
+    .element.image, .element.video, .element.file {
+      border-color: transparent;
+      box-shadow: none;
+    }
+
+    .tags {
+      margin-top: 1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .tag.augment-label.color {
+      border: 1px solid var(--color-0) !important;
+    }
+    .tag.augment-label.css {
+      background: var(--color-4) !important;
+      border: 1px solid var(--color-0) !important;
+    }
+
+    .tag.augment-face.age {
+      border-color: var(--color-0) !important;
+      color: var(--color-0) !important;
+      background: var(--color-4) !important;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="app" style="display: hidden;" v-cloak>
+    <!-- pageloader -->
+    <div class="pageloader is-white">
+      <span class="title">Loading...</span>
+    </div>
+
+    <section class="hero is-fullheight">
+      <!-- navbar -->
+      <nav class="navbar header" role="navigation" aria-label="main navigation">
+        <div id="navbarBasicExample" class="navbar-menu">
+          <div class="navbar-start">
+              <a href="https://memori.as" target="_blank"><img src="themes/default/img/memorias.png" style="height: 3.25rem;"/></a>
+          </div>
+          <div class="navbar-end">
+            <div id="actions">
+              <div class="container-01">
+                <div class="container-02">
+                  <div class="field has-addons">
+                    <a id="show-code" class="button button-1 is-medium is-circle" v-on:click="showCode()">
+                      <span class="icon">
+                        <!-- <i class="fa fa-share-alt"></i> -->
+                        <i class="fas fa-code"></i>
+                      </span>
+                    </a>
+                    <a id="hide-code" class="button is-medium is-circle is-borderless" v-on:click="hideCode()" style="display: none;">
+                      <span class="icon">
+                        <!-- <i class="fa fa-share-alt"></i> -->
+                        <i class="fa fa-chevron-left"></i>
+                      </span>
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      <!-- message -->
+      <article class="message is-danger" style="display: none;">
+        <div class="message-body" style="border-radius: 0;">
+          <p style="font-size: 1.25rem;"></p>
+        </div>
+      </article>
+
+      <!-- elements -->
+      <div id="elements-container" class="hero-body">
+        <div class="container">
+          <div class="box-title" v-if="aio != null">
+            <article class="media">
+              <div class="media-left is-hidden-mobile">
+                <div class="thumb is-circle" v-bind:style="'background-image: url(assets/author--' + aio.author.replace('::', '--') + '-picture.png); border: 1px solid var(--color-3);'">
+                </div>
+              </div>
+              <div class="media-content">
+                <div class="content">
+                  <!-- Title -->
+                  <p class="title">
+                    <strong>
+                      {{ title(aio) }}
+                    </strong>
+                  </p>
+                  <!-- Tags -->
+                  <div class="tags" v-if="tags(aio).length > 0">
+                    <span class="tag is-medium is-rounded" v-for="(tag, index) in tags(aio)" style="margin-right: 0.5rem;">#{{ tag }}</span>
+                    <span class="tag updated is-medium is-rounded">{{ aio.Updated }}{{ aio.updated }}</span>
+                  </div>
+                  <!-- Signature -->
+                  <div class="signature">
+                    <span class="icon-text tag sig is-medium is-rounded" v-if="aio != undefined && sig != ''">
+                      <span class="icon">
+                        <i class="fab fa-ethereum"></i>
+                      </span>
+                      <span v-bind:data-sig="sig">{{ sig.substring(0, 16) }}...{{ sig.substring(sig.length - 4) }}</span>
+                    </span>
+                  </div>
+                  <!-- Recipients -->
+                  <div class="recipients has-text-left">
+                    <div class="field has-addons">
+                      <div id="recipients" class="control" style="width: 100%; display: flex; background: transparent; padding: 0;">
+                        <!-- author -->
+                        <div class="author">
+                          <button class="button is-rounded is-borderless is-fullwidth" v-bind:data-uuid="uuid('author')" style="border: 1px solid var(--color-3); justify-content: flex-start; margin: 0 0.5rem 0 0; border-radius: 5rem; padding-right: 0.25rem; cursor: default;">
+                            <span class="has-badge-rounded has-badge-info">{{ uuid('author') }}</span>
+                          </button>
+                        </div>
+                        <!-- recipient (uuid) -->
+                        <div class="recipient" v-if="isRecipient('')">
+                          <a class="button is-fullwidth" v-bind:data-uuid="uuid()" v-bind:title="uuid()" style="justify-content: flex-start; margin: 0; border-radius: 5rem; padding-right: 0.25rem;  background: var(--color-1); border-color: var(--color-1); color: var(--color-4); cursor: default; padding-left: 0.5rem; padding-right: 0.5rem;">
+                            <span class="icon" style="width: 2rem; height: 2rem;" v-if="uuid('author') != uuid()">
+                              <img v-bind:src="picture()" class="is-circle">
+                            </span>
+                            <span class="has-badge-rounded has-badge-info" v-if="uuid('author') == uuid()">{{ uuid() }}</span>
+                          </a>
+                        </div>
+                        <!-- recipient (others) -->
+                        <div class="recipient" v-for="(recipient, index) in aio.recipients">
+                          <!-- "uuid() != recipient" -->
+                          <a v-bind:href="'account.html?auid=' + recipient" class="button is-fullwidth" v-bind:data-uuid="recipient" v-bind:title="recipient" style="justify-content: flex-start; margin: 0; border-radius: 5rem; padding-right: 0.25rem; padding-left: 0.5rem; padding-right: 0.5rem;" v-if="recipient != 'app::public'">
+                            <span class="icon" style="width: 2rem; height: 2rem;">
+                              <img v-bind:src="accountPicture(recipient)" class="is-circle">
+                            </span>
+                            <span class="has-badge-rounded has-badge-info" v-if="index < 0">{{ recipient }}</span>
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="media-right">
+                <!-- app::public -->
+                <p id="public" v-if="isRecipient('app::public')">
+                  <span class="tag is-small" style="border-radius: 2rem; background: var(--color-0); color: var(--color-4);">app::public</span>
+                  <span class="tag is-small" style="border-radius: 2rem; background: var(--color-4); color: var(--color-1);"><a id="www" v-bind:href="'https://memori.as/app::public/' + uuid() + '/' + aio['Id'] + '/' + aio['Id'] + '.htm'" target="_blank">WWW</a></span>
+                  <span class="tag is-small" style="border-radius: 2rem; background: var(--color-4); color: var(--color-1);"><a id="ipfs" v-bind:href="'https://ipfs.filebase.io/ipfs/' + aio['Ipfs']" target="_blank">IPFS</a></span>
+                  <span class="tag is-small" style="border-radius: 2rem; background: var(--color-4); color: var(--color-1);"><a id="mem" v-bind:href="'https://memori.as/app::public/app::memori.as/' + aio['Mem'] + '.zip'" target="_blank">MEM</a></span>
+                </p>
+              </div>
+            </article>
+          </div>
+
+          <!-- content -->
+          <div id="content" class="column" style="min-height: 40rem;">
+            <div id="elements">
+            </div>
+          </div>
+
+          <hr>
+
+          <!-- box-reply -->
+          <div id="reply-aio" class="column" v-if="aio != null && aio.Reply != undefined && aio.Reply != ''" style="padding: 0.75rem;">
+            <div class="box box-reply">
+              <article class="media">
+                  <div class="media-left">
+                    <figure class="image is-96x96">
+                      <img v-if="uuid() == replyAuthor(aio.Reply)" v-bind:src="picture()" class="is-circle">
+                      <img v-else v-bind:src="replyProfileImageUrl(aio.Reply)" class="is-circle">
+                    </figure>
+                  </div>
+
+                  <div class="media-content">
+                    <div class="content">
+                      <p id="title" class="title" style="padding-left: 0; margin-top: 0; font-size: 2.5rem; margin-bottom: 0; font-family: 'Roboto Slab', serif;">
+                        <strong>
+                          <a v-bind:href="'viewer.html?aio=' + replyAio(aio.Reply) + '&author=' + replyAuthor(aio.Reply)" style="color:var(--color-0);">{{ replyTitle(aio.Reply) }}</a>
+                        </strong>
+                      </p>
+                    </div>
+                    <div class="tags">
+                      <span class="tag is-medium is-rounded is-black" v-if="uuid() == replyAuthor(aio.Reply)" style="cursor: default;">{{ replyAuthor(aio.Reply) }}</span>
+                      <span class="tag is-medium is-rounded is-black" v-else>{{ replyAuthor(aio.Reply) }}</span>
+
+                      <span class="tag is-medium is-rounded" v-for="(tag, index) in tags(aio)" style="margin-right: 0.5rem;">{{ '#' + tag }}</span>
+                      <span class="tag updated is-medium is-rounded">{{ replyUpdated(aio.Reply) }}</span>
+                    </div>
+                  </div>
+
+                  <div class="media-right">
+                  </div>
+                </article>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- code -->
+      <div id="code-container" class="hero-body" style="display: none;">
+        <div class="container">
+          <div class="box">
+            <pre style="background: var(--color-0) !important; color: var(--color-4) !important; padding: 0rem 1.5rem;">
+              <code id="cod" class="language-bash" style="background: var(--color-0) !important; color: var(--color-4) !important; font-size: 1rem;">
+#
+# Download MEMORIAS
+# git clone https://github.com/leozeba/MEMORIAS
+#
+go run MEMORIAS.go --verify IPFS_URL</code>
+            </pre>
+          </div>
+
+          <div class="box">
+            <h1 class="title">What is a MEMORIA?</h1>
+            <br/>
+            <p class="subtitle">
+              A MEMORIA is a JSON token file with the following attributes:
+              <table class="table is-fullwidth">
+                <thead>
+                  <tr>
+                    <th>Attribute</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><b>author</b></td>
+                    <td>string</td>
+                    <td>The creator of the MEMORIA</td>
+                  </tr>
+                  <tr>
+                    <td><b>title</b></td>
+                    <td>string</td>
+                    <td>The title of the content (Every word starting with # is a tag)</td>
+                  </tr>
+                  <tr>
+                    <td><b>recipients</b></td>
+                    <td>[]string</td>
+                    <td>A list containing the recipients of the content</td>
+                  </tr>
+                  <tr>
+                    <td><b>reply</b></td>
+                    <td>string</td>
+                    <td>The MEMORIA this one is a reply or linked to, if any.</td>
+                  </tr>
+                  <tr>
+                    <td><b>created</b></td>
+                    <td>string</td>
+                    <td>Timestamp of the creation.</td>
+                  </tr>
+                  <tr>
+                    <td><b>updated</b></td>
+                    <td>string</td>
+                    <td>Timestamp of the last update.</td>
+                  </tr>
+                  <tr>
+                    <td><b>elements</b></td>
+                    <td>[]json</td>
+                    <td>A collection of elements of the following types: <b>text, image, video, audio, file, brain</b></td>
+                  </tr>
+                </tbody>
+              </table>
+
+              Each element within the collection is characterized by a set of common attributes:
+
+              <table class="table is-fullwidth" style="margin-top: 1.5rem;">
+                <tbody>
+                  <tr>
+                    <td><b>id</b></td>
+                    <td>string</td>
+                    <td>A unique identifier for the element</td>
+                  </tr>
+                  <tr>
+                    <td><b>type</b></td>
+                    <td>string</td>
+                    <td>The content-type of the element (text, image, video, audio, file, brain)</td>
+                  </tr>
+                  <tr>
+                    <td><b>data</b></td>
+                    <td>json</td>
+                    <td>Used for custom metadata depending of the content-type</td>
+                  </tr>
+                  <tr>
+                    <td><b>param</b></td>
+                    <td>string</td>
+                    <td>Hash (SHA3-512) of the content file alongside the content-type</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <ul style="list-style: disc; margin-left: 2rem;">
+                <li style="list-style: none; color: var(--color-1); margin-top: 1.5rem;">
+                  Example: "020aca4164b392d9...83dd4a271b889660.jpeg"<br/><br/>
+                  This structure ensures a standardized format for storing and exchanging diverse types of content within the JSON token file.
+                </li>
+              </ul>
+              <br>
+            </p>
+            <pre><code id="aio" class="language-json"></code></pre>
+          </div>
+          <div class="box">
+            <h1 class="title">How to verify this MEMORIA?</h1>
+            <br/>
+            <p class="subtitle">
+              To validate the content in this MEMORIA we need to download the MEM file (zip) containing
+              all assets referenced in the elements of the MEMORIA:
+
+              <ul style="list-style: disc; margin-left: 2rem;">
+                <li>Download the MEM file from <span id="ipfs-url"><a href="IPFS_URL">IPFS_URL</a><span>;</li>
+                <li>Unzip the file;</li>
+                <li>For element in the MEMORIA, we need to calculate the hash (SHA3-512) of the file in the <b>assets/</b> folder;</li>
+                <li style="list-style: none; color: var(--color-1);">
+                  The hash of each asset must match the prefix of the <b>param</b> value in the element.
+                  <br>
+                  This will guarantee that the assets in this MEMORIA are valid and have not been tampered.
+                </li>
+              </ul>
+            </p>
+          </div>
+
+          <div class="box" v-if="sig != ''">
+            <h1 class="title">How to verify the signature of this MEMORIA?</h1>
+            <br/>
+            <p class="subtitle">
+              To verify the signature of a signed MEMORIA we need to:
+              <ul style="list-style: disc; margin-left: 2rem;">
+                <li>Recover the signer's public key from the signature (.sig) and MEMORIA (.aio);</li>
+                <li>Recover the signer's address from the public key</li>
+                <li style="list-style: none; color: var(--color-1);">
+                  The recovered address must match the suffix of the "author" of MEMORIA.
+                </li>
+              </ul>
+            </p>
+            <pre><code id="sig" class="language-json"></code></pre>
+          </div>
+
+          <div class="box" v-if="aug != ''">
+            <h1 class="title">Augmented Inteligent Output</h1>
+            <br/>
+            <p class="subtitle">
+              These are the augmentations for this MEMORIA. It disclaims the models used for augmenting every element
+              as well as their results. It's a JSON file with the (.aug) extension. <a id="show-content" v-on:click="showContent()"><b>(show)</b><a id="hide-content" v-on:click="hideContent()" style="display: none;"><b>(hide)</b></a>
+            </p>
+            <pre id="the-content" style="display: none;"><code id="aug" class="language-json"></code></pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- navbar -->
+      <nav class="navbar footer" role="navigation" aria-label="main navigation">
+        <div id="navbarBasicExample" class="navbar-menu">
+          <div class="navbar-start">
+          </div>
+          <div class="navbar-end">
+          </div>
+        </div>
+      </nav>
+    </section>
+  </div>
+
+  <!-- vue.js -->
+  <!-- <script src="themes/default/js/vue.js"></script> -->
+  <!-- <script src="themes/default/js/axios.min.js"></script> -->
+  <!-- fontawesome.com -->
+  <!-- <script src="themes/default/js/all.min.js"></script> -->
+  <!-- http://www.jacklmoore.com/autosize/ -->
+  <!-- <script src="themes/default/js/autosize.min.js"></script> -->
+
+  <!-- d3.js -->
+  <!-- <script src="themes/default/js/d3.min.js"></script> -->
+  <!-- https://www.jasondavies.com/wordcloud/ -->
+  <!-- <script src="themes/default/js/d3.layout.cloud.js"></script> -->
+
+  <!-- highlight.min.js -->
+  <!-- <script src="themes/default/js/highlight.min.js"></script> -->
+  <!-- <script>hljs.highlightAll();</script> -->
+
+  <script src="themes/default/js/bundle.js"></script>
+
+  <!-- m.js -->
+  <script src="themes/default/js/m.js"></script>
+  <!-- m.xhr.js -->
+  <script src="themes/default/js/m.xhr.js"></script>
+
+  <script>
+    window.addEventListener('load', function(){
+      var APP = new Vue({
+        el: "#app",
+        data: {
+          e: 0,
+          aio: null,
+          sig: null,
+          aug: null,
+          accounts: [],
+          recipients: [],
+          aioToSign: null
+        },
+        methods: {
+          minit: function() {
+            console.log("> minit");
+            this.mload();
+          },
+          mload: function() {
+            console.log("> mload");
+
+            var elements = [];
+
+            var aio = `{"author":"github::@leozeba","title":"The title!  #tag1 #tag2 #tag3","recipients":["app::public"],"reply":"","created":"2024-12-01 00:58:58","updated":"2024-12-01 00:58:58","elements":[{"id":"image-1","type":"image","param":"49d3d850bf472389f08dec68b85c13678a85b25302f3c1acdfc0ccf7da6bf4666aca8a1e59107d33e128206911e58652ed58596f191bbb94a4a55ef65b46064e.jpeg","data":{"name":""}}]}`;
+            aio = aio.replace(/\n/g, "\\n");
+
+            var aug = `{"image-1":{"augment":{"faces":{"FaceDetails":[{"AgeRange":{"High":56,"Low":50},"Beard":{"Confidence":99.81266,"Value":true},"BoundingBox":{"Height":0.16275921,"Left":0.25319254,"Top":0.20853454,"Width":0.09048504},"Confidence":99.99856,"Emotions":[{"Confidence":97.72136,"Type":"HAPPY"},{"Confidence":0.31137466,"Type":"SURPRISED"},{"Confidence":0.21209717,"Type":"CALM"},{"Confidence":0.14328957,"Type":"CONFUSED"},{"Confidence":0.011271238,"Type":"FEAR"},{"Confidence":0.002527237,"Type":"DISGUSTED"},{"Confidence":0.0006079674,"Type":"ANGRY"},{"Confidence":0.00044107437,"Type":"SAD"}],"EyeDirection":{"Confidence":99.99499,"Pitch":-11.896072,"Yaw":14.418356},"Eyeglasses":{"Confidence":99.82714,"Value":false},"EyesOpen":{"Confidence":99.19751,"Value":true},"FaceOccluded":{"Confidence":98.52562,"Value":false},"Gender":{"Confidence":99.798134,"Value":"Male"},"Landmarks":[{"Type":"eyeLeft","X":0.2939446,"Y":0.2612445},{"Type":"eyeRight","X":0.32942337,"Y":0.278406},{"Type":"mouthLeft","X":0.2856366,"Y":0.3147291},{"Type":"mouthRight","X":0.31523523,"Y":0.3288791},{"Type":"nose","X":0.31504402,"Y":0.29415175},{"Type":"leftEyeBrowLeft","X":0.2797331,"Y":0.24432828},{"Type":"leftEyeBrowRight","X":0.30788174,"Y":0.24833503},{"Type":"leftEyeBrowUp","X":0.29642516,"Y":0.24129054},{"Type":"rightEyeBrowLeft","X":0.32828873,"Y":0.25822806},{"Type":"rightEyeBrowRight","X":0.34153572,"Y":0.2739476},{"Type":"rightEyeBrowUp","X":0.33749363,"Y":0.26108557},{"Type":"leftEyeLeft","X":0.28635848,"Y":0.25848243},{"Type":"leftEyeRight","X":0.30069134,"Y":0.26515293},{"Type":"leftEyeUp","X":0.29483306,"Y":0.25844708},{"Type":"leftEyeDown","X":0.2935129,"Y":0.26368415},{"Type":"rightEyeLeft","X":0.32213405,"Y":0.27553013},{"Type":"rightEyeRight","X":0.33447078,"Y":0.28157005},{"Type":"rightEyeUp","X":0.33048812,"Y":0.2756528},{"Type":"rightEyeDown","X":0.32866573,"Y":0.2805683},{"Type":"noseLeft","X":0.30084687,"Y":0.29888266},{"Type":"noseRight","X":0.31402814,"Y":0.30507442},{"Type":"mouthUp","X":0.30553815,"Y":0.31401348},{"Type":"mouthDown","X":0.30063626,"Y":0.3301469},{"Type":"leftPupil","X":0.2939446,"Y":0.2612445},{"Type":"rightPupil","X":0.32942337,"Y":0.278406},{"Type":"upperJawlineLeft","X":0.25759712,"Y":0.2574958},{"Type":"midJawlineLeft","X":0.25393647,"Y":0.3165841},{"Type":"chinBottom","X":0.29029074,"Y":0.35841972},{"Type":"midJawlineRight","X":0.31698117,"Y":0.34613723},{"Type":"upperJawlineRight","X":0.33523098,"Y":0.2944968}],"MouthOpen":{"Confidence":95.7294,"Value":false},"Mustache":{"Confidence":80.79473,"Value":false},"Pose":{"Pitch":16.033781,"Roll":21.775505,"Yaw":17.961237},"Quality":{"Brightness":75.86124,"Sharpness":92.22801},"Smile":{"Confidence":90.44866,"Value":true},"Sunglasses":{"Confidence":99.992836,"Value":false}},{"AgeRange":{"High":84,"Low":74},"Beard":{"Confidence":97.44387,"Value":true},"BoundingBox":{"Height":0.14113024,"Left":0.70664024,"Top":0.38661602,"Width":0.08712997},"Confidence":99.99909,"Emotions":[{"Confidence":97.07031,"Type":"HAPPY"},{"Confidence":0.82473755,"Type":"CALM"},{"Confidence":0.012978911,"Type":"SURPRISED"},{"Confidence":0.0017980734,"Type":"CONFUSED"},{"Confidence":0.0010251999,"Type":"ANGRY"},{"Confidence":0.00062584877,"Type":"SAD"},{"Confidence":0.00037550926,"Type":"DISGUSTED"},{"Confidence":0.00013411045,"Type":"FEAR"}],"EyeDirection":{"Confidence":99.99978,"Pitch":-10.937548,"Yaw":-15.181975},"Eyeglasses":{"Confidence":99.95909,"Value":true},"EyesOpen":{"Confidence":99.99167,"Value":true},"FaceOccluded":{"Confidence":99.97639,"Value":false},"Gender":{"Confidence":99.92682,"Value":"Male"},"Landmarks":[{"Type":"eyeLeft","X":0.73130625,"Y":0.44628993},{"Type":"eyeRight","X":0.76778716,"Y":0.43776774},{"Type":"mouthLeft","X":0.7410434,"Y":0.49470145},{"Type":"mouthRight","X":0.77154154,"Y":0.48757374},{"Type":"nose","X":0.7535319,"Y":0.46813986},{"Type":"leftEyeBrowLeft","X":0.71602446,"Y":0.43800914},{"Type":"leftEyeBrowRight","X":0.7370639,"Y":0.42966852},{"Type":"leftEyeBrowUp","X":0.7260952,"Y":0.42956772},{"Type":"rightEyeBrowLeft","X":0.75786537,"Y":0.42478657},{"Type":"rightEyeBrowRight","X":0.7792205,"Y":0.4231572},{"Type":"rightEyeBrowUp","X":0.76797235,"Y":0.419734},{"Type":"leftEyeLeft","X":0.7247271,"Y":0.44757625},{"Type":"leftEyeRight","X":0.7385455,"Y":0.44503725},{"Type":"leftEyeUp","X":0.7308763,"Y":0.44379663},{"Type":"leftEyeDown","X":0.7317463,"Y":0.44841528},{"Type":"rightEyeLeft","X":0.7605539,"Y":0.43988952},{"Type":"rightEyeRight","X":0.77408,"Y":0.43601802},{"Type":"rightEyeUp","X":0.76746416,"Y":0.43523473},{"Type":"rightEyeDown","X":0.76783717,"Y":0.43996352},{"Type":"noseLeft","X":0.7471251,"Y":0.47526404},{"Type":"noseRight","X":0.760552,"Y":0.47210342},{"Type":"mouthUp","X":0.7554853,"Y":0.4853573},{"Type":"mouthDown","X":0.75744027,"Y":0.5002541},{"Type":"leftPupil","X":0.73130625,"Y":0.44628993},{"Type":"rightPupil","X":0.76778716,"Y":0.43776774},{"Type":"upperJawlineLeft","X":0.70919126,"Y":0.45215535},{"Type":"midJawlineLeft","X":0.7240991,"Y":0.5038014},{"Type":"chinBottom","X":0.76074576,"Y":0.52589154},{"Type":"midJawlineRight","X":0.78818303,"Y":0.48867574},{"Type":"upperJawlineRight","X":0.7883028,"Y":0.4335284}],"MouthOpen":{"Confidence":86.52343,"Value":false},"Mustache":{"Confidence":96.45596,"Value":true},"Pose":{"Pitch":6.594347,"Roll":-10.957762,"Yaw":0.8923264},"Quality":{"Brightness":78.81425,"Sharpness":89.85481},"Smile":{"Confidence":95.57434,"Value":true},"Sunglasses":{"Confidence":99.967514,"Value":false}},{"AgeRange":{"High":50,"Low":42},"Beard":{"Confidence":99.50191,"Value":true},"BoundingBox":{"Height":0.13800646,"Left":0.41287726,"Top":0.23321734,"Width":0.070056155},"Confidence":99.99422,"Emotions":[{"Confidence":98.69792,"Type":"HAPPY"},{"Confidence":0.3581047,"Type":"SURPRISED"},{"Confidence":0.04014969,"Type":"CALM"},{"Confidence":0.016500551,"Type":"CONFUSED"},{"Confidence":0.009423494,"Type":"DISGUSTED"},{"Confidence":0.0027179718,"Type":"ANGRY"},{"Confidence":0.0010371208,"Type":"FEAR"},{"Confidence":0.00014305115,"Type":"SAD"}],"EyeDirection":{"Confidence":99.9995,"Pitch":-10.428966,"Yaw":8.299307},"Eyeglasses":{"Confidence":99.8501,"Value":false},"EyesOpen":{"Confidence":99.97493,"Value":true},"FaceOccluded":{"Confidence":99.91068,"Value":false},"Gender":{"Confidence":99.95473,"Value":"Male"},"Landmarks":[{"Type":"eyeLeft","X":0.43269685,"Y":0.29008123},{"Type":"eyeRight","X":0.4642857,"Y":0.2884088},{"Type":"mouthLeft","X":0.43706504,"Y":0.3358995},{"Type":"mouthRight","X":0.46335492,"Y":0.33447888},{"Type":"nose","X":0.45023957,"Y":0.3123426},{"Type":"leftEyeBrowLeft","X":0.4201194,"Y":0.280477},{"Type":"leftEyeBrowRight","X":0.4390204,"Y":0.27554655},{"Type":"leftEyeBrowUp","X":0.4295898,"Y":0.27387604},{"Type":"rightEyeBrowLeft","X":0.45714363,"Y":0.27457523},{"Type":"rightEyeBrowRight","X":0.47510093,"Y":0.2775049},{"Type":"rightEyeBrowUp","X":0.46608907,"Y":0.27191344},{"Type":"leftEyeLeft","X":0.42690536,"Y":0.29032877},{"Type":"leftEyeRight","X":0.43891078,"Y":0.29013723},{"Type":"leftEyeUp","X":0.43253016,"Y":0.2876845},{"Type":"leftEyeDown","X":0.43287385,"Y":0.29206407},{"Type":"rightEyeLeft","X":0.45799094,"Y":0.28912857},{"Type":"rightEyeRight","X":0.469729,"Y":0.28803125},{"Type":"rightEyeUp","X":0.4642586,"Y":0.2859942},{"Type":"rightEyeDown","X":0.46416447,"Y":0.2903866},{"Type":"noseLeft","X":0.44385186,"Y":0.3184271},{"Type":"noseRight","X":0.45556492,"Y":0.31777966},{"Type":"mouthUp","X":0.4501959,"Y":0.32886836},{"Type":"mouthDown","X":0.45056728,"Y":0.34281337},{"Type":"leftPupil","X":0.43269685,"Y":0.29008123},{"Type":"rightPupil","X":0.4642857,"Y":0.2884088},{"Type":"upperJawlineLeft","X":0.41244552,"Y":0.293749},{"Type":"midJawlineLeft","X":0.42091656,"Y":0.34263787},{"Type":"chinBottom","X":0.45104924,"Y":0.36704594},{"Type":"midJawlineRight","X":0.4770064,"Y":0.3395305},{"Type":"upperJawlineRight","X":0.48150823,"Y":0.2899884}],"MouthOpen":{"Confidence":97.52329,"Value":true},"Mustache":{"Confidence":94.14391,"Value":false},"Pose":{"Pitch":6.9946623,"Roll":-3.5938993,"Yaw":2.1152384},"Quality":{"Brightness":69.73745,"Sharpness":78.6435},"Smile":{"Confidence":98.33138,"Value":true},"Sunglasses":{"Confidence":99.92753,"Value":false}},{"AgeRange":{"High":44,"Low":36},"Beard":{"Confidence":88.385826,"Value":false},"BoundingBox":{"Height":0.1340552,"Left":0.56186795,"Top":0.32741278,"Width":0.07198372},"Confidence":99.99542,"Emotions":[{"Confidence":100,"Type":"HAPPY"},{"Confidence":0.009316206,"Type":"CALM"},{"Confidence":0.0083222985,"Type":"SURPRISED"},{"Confidence":0.0031143427,"Type":"CONFUSED"},{"Confidence":0.0025451183,"Type":"ANGRY"},{"Confidence":0.001141429,"Type":"FEAR"},{"Confidence":0.0006854534,"Type":"DISGUSTED"},{"Confidence":0.00032782555,"Type":"SAD"}],"EyeDirection":{"Confidence":99.99969,"Pitch":-15.880431,"Yaw":-5.8962584},"Eyeglasses":{"Confidence":99.95795,"Value":true},"EyesOpen":{"Confidence":99.99999,"Value":true},"FaceOccluded":{"Confidence":99.68669,"Value":false},"Gender":{"Confidence":99.728455,"Value":"Male"},"Landmarks":[{"Type":"eyeLeft","X":0.5799023,"Y":0.38305625},{"Type":"eyeRight","X":0.61083907,"Y":0.37988064},{"Type":"mouthLeft","X":0.58431244,"Y":0.42719227},{"Type":"mouthRight","X":0.61005825,"Y":0.42451707},{"Type":"nose","X":0.59574354,"Y":0.40405864},{"Type":"leftEyeBrowLeft","X":0.56807005,"Y":0.37411854},{"Type":"leftEyeBrowRight","X":0.5855343,"Y":0.36870158},{"Type":"leftEyeBrowUp","X":0.5765556,"Y":0.36745912},{"Type":"rightEyeBrowLeft","X":0.60326326,"Y":0.36688706},{"Type":"rightEyeBrowRight","X":0.62188965,"Y":0.36862448},{"Type":"rightEyeBrowUp","X":0.6122659,"Y":0.36382392},{"Type":"leftEyeLeft","X":0.5744249,"Y":0.38349703},{"Type":"leftEyeRight","X":0.58600736,"Y":0.3827782},{"Type":"leftEyeUp","X":0.5796599,"Y":0.38073647},{"Type":"leftEyeDown","X":0.580095,"Y":0.38493454},{"Type":"rightEyeLeft","X":0.6046925,"Y":0.38086364},{"Type":"rightEyeRight","X":0.6163515,"Y":0.3792135},{"Type":"rightEyeUp","X":0.6107263,"Y":0.37755203},{"Type":"rightEyeDown","X":0.61073405,"Y":0.38179666},{"Type":"noseLeft","X":0.59048563,"Y":0.41000715},{"Type":"noseRight","X":0.60194093,"Y":0.4088564},{"Type":"mouthUp","X":0.5966202,"Y":0.41986334},{"Type":"mouthDown","X":0.5972837,"Y":0.43330148},{"Type":"leftPupil","X":0.5799023,"Y":0.38305625},{"Type":"rightPupil","X":0.61083907,"Y":0.37988064},{"Type":"upperJawlineLeft","X":0.5623469,"Y":0.38686776},{"Type":"midJawlineLeft","X":0.5707362,"Y":0.43387467},{"Type":"chinBottom","X":0.5985819,"Y":0.45662993},{"Type":"midJawlineRight","X":0.62559474,"Y":0.42841557},{"Type":"upperJawlineRight","X":0.6299219,"Y":0.38004228}],"MouthOpen":{"Confidence":99.341125,"Value":true},"Mustache":{"Confidence":99.87887,"Value":false},"Pose":{"Pitch":8.251146,"Roll":-5.362108,"Yaw":-2.6459992},"Quality":{"Brightness":74.7769,"Sharpness":86.86019},"Smile":{"Confidence":99.79354,"Value":true},"Sunglasses":{"Confidence":99.954895,"Value":false}},{"AgeRange":{"High":50,"Low":42},"Beard":{"Confidence":82.67402,"Value":false},"BoundingBox":{"Height":0.03343414,"Left":0.81935644,"Top":0.41482386,"Width":0.01906395},"Confidence":98.47553,"Emotions":[{"Confidence":47.8125,"Type":"CALM"},{"Confidence":42.5,"Type":"SAD"},{"Confidence":1.083374,"Type":"CONFUSED"},{"Confidence":0.6664276,"Type":"ANGRY"},{"Confidence":0.08740425,"Type":"DISGUSTED"},{"Confidence":0.066280365,"Type":"SURPRISED"},{"Confidence":0.05531311,"Type":"HAPPY"},{"Confidence":0.042533875,"Type":"FEAR"}],"EyeDirection":{"Confidence":94.3956,"Pitch":-16.410353,"Yaw":-26.200216},"Eyeglasses":{"Confidence":99.78323,"Value":false},"EyesOpen":{"Confidence":99.120415,"Value":true},"FaceOccluded":{"Confidence":99.89076,"Value":true},"Gender":{"Confidence":99.952644,"Value":"Male"},"Landmarks":[{"Type":"eyeLeft","X":0.8290124,"Y":0.4303424},{"Type":"eyeRight","X":0.8349969,"Y":0.429687},{"Type":"mouthLeft","X":0.8292241,"Y":0.44207993},{"Type":"mouthRight","X":0.83420455,"Y":0.44142446},{"Type":"nose","X":0.83487535,"Y":0.43755794},{"Type":"leftEyeBrowLeft","X":0.8256312,"Y":0.42752147},{"Type":"leftEyeBrowRight","X":0.8313105,"Y":0.42730978},{"Type":"leftEyeBrowUp","X":0.82898706,"Y":0.426633},{"Type":"rightEyeBrowLeft","X":0.83480966,"Y":0.4270363},{"Type":"rightEyeBrowRight","X":0.8362046,"Y":0.42650676},{"Type":"rightEyeBrowUp","X":0.83604395,"Y":0.4260512},{"Type":"leftEyeLeft","X":0.82749957,"Y":0.43024954},{"Type":"leftEyeRight","X":0.8301516,"Y":0.4303283},{"Type":"leftEyeUp","X":0.8291347,"Y":0.4298352},{"Type":"leftEyeDown","X":0.8289978,"Y":0.43086645},{"Type":"rightEyeLeft","X":0.83377564,"Y":0.42995325},{"Type":"rightEyeRight","X":0.83568937,"Y":0.42938247},{"Type":"rightEyeUp","X":0.83517957,"Y":0.42920578},{"Type":"rightEyeDown","X":0.83496827,"Y":0.43021667},{"Type":"noseLeft","X":0.8317951,"Y":0.4380201},{"Type":"noseRight","X":0.8340962,"Y":0.43779963},{"Type":"mouthUp","X":0.8331479,"Y":0.44074813},{"Type":"mouthDown","X":0.83264136,"Y":0.4439764},{"Type":"leftPupil","X":0.8290124,"Y":0.4303424},{"Type":"rightPupil","X":0.8349969,"Y":0.429687},{"Type":"upperJawlineLeft","X":0.82049215,"Y":0.4289271},{"Type":"midJawlineLeft","X":0.8220027,"Y":0.44117615},{"Type":"chinBottom","X":0.83118814,"Y":0.4491541},{"Type":"midJawlineRight","X":0.8330628,"Y":0.44022048},{"Type":"upperJawlineRight","X":0.8339168,"Y":0.42778578}],"MouthOpen":{"Confidence":90.17854,"Value":false},"Mustache":{"Confidence":98.59093,"Value":false},"Pose":{"Pitch":-23.15286,"Roll":-8.634878,"Yaw":28.465876},"Quality":{"Brightness":82.1032,"Sharpness":5.7756686},"Smile":{"Confidence":98.98186,"Value":false},"Sunglasses":{"Confidence":99.9365,"Value":false}},{"AgeRange":{"High":32,"Low":24},"Beard":{"Confidence":60.18198,"Value":true},"BoundingBox":{"Height":0.018810831,"Left":0.9876129,"Top":0.39253402,"Width":0.0108354185},"Confidence":97.276505,"Emotions":[{"Confidence":45.836124,"Type":"CALM"},{"Confidence":31.37207,"Type":"ANGRY"},{"Confidence":3.8879395,"Type":"DISGUSTED"},{"Confidence":1.0299683,"Type":"SAD"},{"Confidence":0.5877813,"Type":"CONFUSED"},{"Confidence":0.21324158,"Type":"HAPPY"},{"Confidence":0.10085106,"Type":"SURPRISED"},{"Confidence":0.016880035,"Type":"FEAR"}],"EyeDirection":{"Confidence":0,"Pitch":-3.6916816,"Yaw":-33.4292},"Eyeglasses":{"Confidence":99.40263,"Value":false},"EyesOpen":{"Confidence":99.83267,"Value":true},"FaceOccluded":{"Confidence":76.937996,"Value":true},"Gender":{"Confidence":99.46707,"Value":"Male"},"Landmarks":[{"Type":"eyeLeft","X":0.9966736,"Y":0.40265623},{"Type":"eyeRight","X":0.9980072,"Y":0.40170166},{"Type":"mouthLeft","X":0.9955197,"Y":0.40581417},{"Type":"mouthRight","X":0.99663377,"Y":0.40490773},{"Type":"nose","X":1.0000378,"Y":0.40512303},{"Type":"leftEyeBrowLeft","X":0.99510646,"Y":0.40190378},{"Type":"leftEyeBrowRight","X":0.9983626,"Y":0.40200713},{"Type":"leftEyeBrowUp","X":0.99739456,"Y":0.4018465},{"Type":"rightEyeBrowLeft","X":0.999141,"Y":0.40162483},{"Type":"rightEyeBrowRight","X":0.9974621,"Y":0.40045452},{"Type":"rightEyeBrowUp","X":0.9989673,"Y":0.4010318},{"Type":"leftEyeLeft","X":0.9959696,"Y":0.40265977},{"Type":"leftEyeRight","X":0.9968758,"Y":0.40251395},{"Type":"leftEyeUp","X":0.9968825,"Y":0.40256727},{"Type":"leftEyeDown","X":0.99660575,"Y":0.402812},{"Type":"rightEyeLeft","X":0.99767923,"Y":0.40196607},{"Type":"rightEyeRight","X":0.9978039,"Y":0.4014253},{"Type":"rightEyeUp","X":0.99823034,"Y":0.40166172},{"Type":"rightEyeDown","X":0.99794275,"Y":0.40188634},{"Type":"noseLeft","X":0.99760133,"Y":0.40483704},{"Type":"noseRight","X":0.9981248,"Y":0.40455326},{"Type":"mouthUp","X":0.9978877,"Y":0.4055184},{"Type":"mouthDown","X":0.9970622,"Y":0.4062569},{"Type":"leftPupil","X":0.9966736,"Y":0.40265623},{"Type":"rightPupil","X":0.9980072,"Y":0.40170166},{"Type":"upperJawlineLeft","X":0.99040395,"Y":0.40134925},{"Type":"midJawlineLeft","X":0.9902177,"Y":0.4045538},{"Type":"chinBottom","X":0.99506587,"Y":0.40722138},{"Type":"midJawlineRight","X":0.99271846,"Y":0.40330586},{"Type":"upperJawlineRight","X":0.9934033,"Y":0.3997579}],"MouthOpen":{"Confidence":78.57362,"Value":false},"Mustache":{"Confidence":93.95816,"Value":false},"Pose":{"Pitch":-50.43532,"Roll":-9.836441,"Yaw":31.662403},"Quality":{"Brightness":84.5835,"Sharpness":1.3998106},"Smile":{"Confidence":97.53872,"Value":false},"Sunglasses":{"Confidence":99.45941,"Value":false}}],"OrientationCorrection":"","ResultMetadata":{}},"labels":{"ImageProperties":{"Background":{"DominantColors":[{"Blue":0,"CSSColor":"black","Green":0,"HexCode":"#000000","PixelPercent":29.956896,"Red":0,"SimplifiedColor":"black"},{"Blue":169,"CSSColor":"darkgrey","Green":169,"HexCode":"#a9a9a9","PixelPercent":14.547414,"Red":169,"SimplifiedColor":"grey"},{"Blue":128,"CSSColor":"gray","Green":128,"HexCode":"#808080","PixelPercent":13.362069,"Red":128,"SimplifiedColor":"grey"},{"Blue":79,"CSSColor":"darkslategrey","Green":79,"HexCode":"#2f4f4f","PixelPercent":12.823276,"Red":47,"SimplifiedColor":"grey"},{"Blue":192,"CSSColor":"silver","Green":192,"HexCode":"#c0c0c0","PixelPercent":11.206897,"Red":192,"SimplifiedColor":"grey"},{"Blue":205,"CSSColor":"blanchedalmond","Green":235,"HexCode":"#ffebcd","PixelPercent":6.3577585,"Red":255,"SimplifiedColor":"brown"},{"Blue":32,"CSSColor":"goldenrod","Green":165,"HexCode":"#daa520","PixelPercent":3.5560346,"Red":218,"SimplifiedColor":"brown"},{"Blue":0,"CSSColor":"maroon","Green":0,"HexCode":"#800000","PixelPercent":2.586207,"Red":128,"SimplifiedColor":"brown"},{"Blue":153,"CSSColor":"lightslategrey","Green":136,"HexCode":"#778899","PixelPercent":2.1551723,"Red":119,"SimplifiedColor":"grey"},{"Blue":96,"CSSColor":"sandybrown","Green":164,"HexCode":"#f4a460","PixelPercent":1.9396552,"Red":244,"SimplifiedColor":"brown"}],"Quality":{"Brightness":71.54122,"Contrast":null,"Sharpness":93.29869}},"DominantColors":[{"Blue":0,"CSSColor":"black","Green":0,"HexCode":"#000000","PixelPercent":37.40967,"Red":0,"SimplifiedColor":"black"},{"Blue":192,"CSSColor":"silver","Green":192,"HexCode":"#c0c0c0","PixelPercent":20.400223,"Red":192,"SimplifiedColor":"grey"},{"Blue":128,"CSSColor":"gray","Green":128,"HexCode":"#808080","PixelPercent":14.174541,"Red":128,"SimplifiedColor":"grey"},{"Blue":79,"CSSColor":"darkslategrey","Green":79,"HexCode":"#2f4f4f","PixelPercent":7.8376875,"Red":47,"SimplifiedColor":"grey"},{"Blue":45,"CSSColor":"sienna","Green":82,"HexCode":"#a0522d","PixelPercent":7.4485826,"Red":160,"SimplifiedColor":"brown"},{"Blue":19,"CSSColor":"saddlebrown","Green":69,"HexCode":"#8b4513","PixelPercent":4.335742,"Red":139,"SimplifiedColor":"brown"},{"Blue":32,"CSSColor":"goldenrod","Green":165,"HexCode":"#daa520","PixelPercent":3.4463592,"Red":218,"SimplifiedColor":"brown"},{"Blue":0,"CSSColor":"maroon","Green":0,"HexCode":"#800000","PixelPercent":3.168427,"Red":128,"SimplifiedColor":"brown"},{"Blue":169,"CSSColor":"darkgrey","Green":169,"HexCode":"#a9a9a9","PixelPercent":1.778766,"Red":169,"SimplifiedColor":"grey"}],"Foreground":{"DominantColors":[{"Blue":79,"CSSColor":"darkslategrey","Green":79,"HexCode":"#2f4f4f","PixelPercent":31.070196,"Red":47,"SimplifiedColor":"grey"},{"Blue":0,"CSSColor":"black","Green":0,"HexCode":"#000000","PixelPercent":30.609896,"Red":0,"SimplifiedColor":"black"},{"Blue":143,"CSSColor":"rosybrown","Green":143,"HexCode":"#bc8f8f","PixelPercent":12.773303,"Red":188,"SimplifiedColor":"brown"},{"Blue":169,"CSSColor":"darkgrey","Green":169,"HexCode":"#a9a9a9","PixelPercent":11.852704,"Red":169,"SimplifiedColor":"grey"},{"Blue":0,"CSSColor":"maroon","Green":0,"HexCode":"#800000","PixelPercent":7.364787,"Red":128,"SimplifiedColor":"brown"},{"Blue":19,"CSSColor":"saddlebrown","Green":69,"HexCode":"#8b4513","PixelPercent":5.063291,"Red":139,"SimplifiedColor":"brown"},{"Blue":32,"CSSColor":"goldenrod","Green":165,"HexCode":"#daa520","PixelPercent":0.6904488,"Red":218,"SimplifiedColor":"brown"},{"Blue":30,"CSSColor":"chocolate","Green":105,"HexCode":"#d2691e","PixelPercent":0.575374,"Red":210,"SimplifiedColor":"brown"}],"Quality":{"Brightness":51.72889,"Contrast":null,"Sharpness":80.810936}},"Quality":{"Brightness":59.458855,"Contrast":88.58542,"Sharpness":88.55675}},"LabelModelVersion":"3.0","Labels":[{"Aliases":[],"Categories":[{"Name":"Person Description"}],"Confidence":99.95748,"Instances":[{"BoundingBox":{"Height":0.38796058,"Left":0.8669219,"Top":0.3280886,"Width":0.13307808},"Confidence":99.95748,"DominantColors":[]},{"BoundingBox":{"Height":0.63986224,"Left":0.5895501,"Top":0.36002868,"Width":0.33560026},"Confidence":99.46152,"DominantColors":[]}],"Name":"Adult","Parents":[{"Name":"Person"}]},{"Aliases":[],"Categories":[{"Name":"Person Description"}],"Confidence":99.95748,"Instances":[{"BoundingBox":{"Height":0.38796058,"Left":0.8669219,"Top":0.3280886,"Width":0.13307808},"Confidence":99.95748,"DominantColors":[]},{"BoundingBox":{"Height":0.63986224,"Left":0.5895501,"Top":0.36002868,"Width":0.33560026},"Confidence":99.46152,"DominantColors":[]}],"Name":"Female","Parents":[{"Name":"Person"}]},{"Aliases":[{"Name":"Human"}],"Categories":[{"Name":"Person Description"}],"Confidence":99.95748,"Instances":[{"BoundingBox":{"Height":0.38796058,"Left":0.8669219,"Top":0.3280886,"Width":0.13307808},"Confidence":99.95748,"DominantColors":[]},{"BoundingBox":{"Height":0.63986224,"Left":0.5895501,"Top":0.36002868,"Width":0.33560026},"Confidence":99.46152,"DominantColors":[{"Blue":0,"CSSColor":"maroon","Green":0,"HexCode":"#800000","PixelPercent":27.081244,"Red":128,"SimplifiedColor":"brown"},{"Blue":0,"CSSColor":"black","Green":0,"HexCode":"#000000","PixelPercent":25.977934,"Red":0,"SimplifiedColor":"black"},{"Blue":45,"CSSColor":"sienna","Green":82,"HexCode":"#a0522d","PixelPercent":23.570713,"Red":160,"SimplifiedColor":"brown"},{"Blue":34,"CSSColor":"firebrick","Green":34,"HexCode":"#b22222","PixelPercent":6.920762,"Red":178,"SimplifiedColor":"red"},{"Blue":139,"CSSColor":"darkslateblue","Green":61,"HexCode":"#483d8b","PixelPercent":6.218656,"Red":72,"SimplifiedColor":"blue"},{"Blue":63,"CSSColor":"peru","Green":133,"HexCode":"#cd853f","PixelPercent":3.9117353,"Red":205,"SimplifiedColor":"brown"},{"Blue":169,"CSSColor":"darkgrey","Green":169,"HexCode":"#a9a9a9","PixelPercent":3.6108325,"Red":169,"SimplifiedColor":"grey"},{"Blue":122,"CSSColor":"darksalmon","Green":150,"HexCode":"#e9967a","PixelPercent":2.7081244,"Red":233,"SimplifiedColor":"red"}]},{"BoundingBox":{"Height":0.056681316,"Left":0.6736521,"Top":0.40741464,"Width":0.024135819},"Confidence":81.44048,"DominantColors":[]}],"Name":"Person","Parents":[]},{"Aliases":[],"Categories":[{"Name":"Person Description"}],"Confidence":99.95748,"Instances":[{"BoundingBox":{"Height":0.38796058,"Left":0.8669219,"Top":0.3280886,"Width":0.13307808},"Confidence":99.95748,"DominantColors":[]},{"BoundingBox":{"Height":0.63986224,"Left":0.5895501,"Top":0.36002868,"Width":0.33560026},"Confidence":99.46152,"DominantColors":[]}],"Name":"Woman","Parents":[{"Name":"Adult"},{"Name":"Female"},{"Name":"Person"}]},{"Aliases":[],"Categories":[{"Name":"Travel and Adventure"}],"Confidence":98.62368,"Instances":[],"Name":"Fun","Parents":[]},{"Aliases":[],"Categories":[{"Name":"Events and Attractions"}],"Confidence":98.62368,"Instances":[],"Name":"Party","Parents":[{"Name":"Fun"}]},{"Aliases":[],"Categories":[{"Name":"Colors and Visual Composition"}],"Confidence":98.42641,"Instances":[],"Name":"Urban","Parents":[]},{"Aliases":[],"Categories":[{"Name":"Food and Beverage"}],"Confidence":97.22015,"Instances":[],"Name":"Alcohol","Parents":[{"Name":"Beverage"}]},{"Aliases":[],"Categories":[{"Name":"Food and Beverage"}],"Confidence":97.22015,"Instances":[{"BoundingBox":{"Height":0.06517344,"Left":0.38058487,"Top":0.53973293,"Width":0.056958962},"Confidence":97.22015,"DominantColors":[]},{"BoundingBox":{"Height":0.17801738,"Left":0.5212021,"Top":0.5144211,"Width":0.05181534},"Confidence":93.229805,"DominantColors":[]},{"BoundingBox":{"Height":0.08511566,"Left":0.4277996,"Top":0.56915754,"Width":0.042462233},"Confidence":84.92689,"DominantColors":[]}],"Name":"Beer","Parents":[{"Name":"Alcohol"},{"Name":"Beverage"}]},{"Aliases":[{"Name":"Drink"}],"Categories":[{"Name":"Food and Beverage"}],"Confidence":97.22015,"Instances":[],"Name":"Beverage","Parents":[]},{"Aliases":[{"Name":"Accessory"}],"Categories":[{"Name":"Apparel and Accessories"}],"Confidence":82.70176,"Instances":[],"Name":"Accessories","Parents":[]},{"Aliases":[],"Categories":[{"Name":"Apparel and Accessories"}],"Confidence":82.70176,"Instances":[],"Name":"Bag","Parents":[]},{"Aliases":[],"Categories":[{"Name":"Apparel and Accessories"}],"Confidence":82.70176,"Instances":[{"BoundingBox":{"Height":0.100205585,"Left":0.95845926,"Top":0.5306374,"Width":0.041540757},"Confidence":82.70176,"DominantColors":[]}],"Name":"Handbag","Parents":[{"Name":"Accessories"},{"Name":"Bag"}]},{"Aliases":[{"Name":"Mug"}],"Categories":[{"Name":"Kitchen and Dining"}],"Confidence":72.553375,"Instances":[],"Name":"Cup","Parents":[]},{"Aliases":[],"Categories":[{"Name":"Everyday Objects"}],"Confidence":72.553375,"Instances":[{"BoundingBox":{"Height":0.070047915,"Left":0.5847971,"Top":0.5561541,"Width":0.050022736},"Confidence":72.553375,"DominantColors":[]}],"Name":"Disposable Cup","Parents":[{"Name":"Cup"}]},{"Aliases":[],"Categories":[{"Name":"Apparel and Accessories"}],"Confidence":72.2949,"Instances":[{"BoundingBox":{"Height":0.03813194,"Left":0.5577159,"Top":0.36737433,"Width":0.08113384},"Confidence":72.2949,"DominantColors":[]}],"Name":"Glasses","Parents":[{"Name":"Accessories"}]},{"Aliases":[],"Categories":[{"Name":"Nature and Outdoors"}],"Confidence":71.1389,"Instances":[],"Name":"Outdoors","Parents":[]}],"OrientationCorrection":"","ResultMetadata":{}},"models":{"faces":"Amazon Rekognition (Detect Faces 3.0)","labels":"Amazon Rekognition (Detect Labels 3.0)","text":"Amazon Rekognition (Detect Text 3.0)"},"text":{"TextDetections":[{"Confidence":98.87242,"DetectedText":"stúdio","Geometry":{"BoundingBox":{"Height":0.033067804,"Left":0.5219428,"Top":0.10933271,"Width":0.055403214},"Polygon":[{"X":0.5219428,"Y":0.11542422},{"X":0.5756241,"Y":0.10933271},{"X":0.577346,"Y":0.136309},{"X":0.52366465,"Y":0.14240052}]},"Id":0,"ParentId":null,"Type":"LINE"},{"Confidence":43.660637,"DetectedText":"+","Geometry":{"BoundingBox":{"Height":0.014833552,"Left":0.07646651,"Top":0.16543765,"Width":0.01924213},"Polygon":[{"X":0.07721285,"Y":0.16543765},{"X":0.09570864,"Y":0.16733466},{"X":0.09496229,"Y":0.18027121},{"X":0.07646651,"Y":0.17837422}]},"Id":1,"ParentId":null,"Type":"LINE"},{"Confidence":55.96377,"DetectedText":"mmeOut","Geometry":{"BoundingBox":{"Height":0.054723535,"Left":0.5130118,"Top":0.1389399,"Width":0.07204513},"Polygon":[{"X":0.5130118,"Y":0.15007943},{"X":0.58104265,"Y":0.1389399},{"X":0.58505696,"Y":0.18252389},{"X":0.5170261,"Y":0.19366343}]},"Id":2,"ParentId":null,"Type":"LINE"},{"Confidence":99.303085,"DetectedText":"DAVVER","Geometry":{"BoundingBox":{"Height":0.032300618,"Left":0.34778282,"Top":0.24800797,"Width":0.056585997},"Polygon":[{"X":0.34908095,"Y":0.24800797},{"X":0.40436882,"Y":0.25261527},{"X":0.4030707,"Y":0.28030857},{"X":0.34778282,"Y":0.27570125}]},"Id":3,"ParentId":null,"Type":"LINE"},{"Confidence":99.34153,"DetectedText":"NÓS É MAIS BOLOS","Geometry":{"BoundingBox":{"Height":0.039485272,"Left":0.49680814,"Top":0.25691715,"Width":0.11283829},"Polygon":[{"X":0.49812633,"Y":0.25691715},{"X":0.60964644,"Y":0.265327},{"X":0.6083282,"Y":0.29640242},{"X":0.49680814,"Y":0.28799254}]},"Id":4,"ParentId":null,"Type":"LINE"},{"Confidence":99.26292,"DetectedText":"GARRAFEIRA NACIONAL","Geometry":{"BoundingBox":{"Height":0.033505656,"Left":0.6584949,"Top":0.27506918,"Width":0.115352325},"Polygon":[{"X":0.6595642,"Y":0.27506918},{"X":0.7738472,"Y":0.2838602},{"X":0.77277786,"Y":0.30857483},{"X":0.6584949,"Y":0.2997838}]},"Id":5,"ParentId":null,"Type":"LINE"},{"Confidence":98.42771,"DetectedText":"GELATI","Geometry":{"BoundingBox":{"Height":0.017128397,"Left":0.33858657,"Top":0.30400765,"Width":0.02956932},"Polygon":[{"X":0.33858657,"Y":0.30675036},{"X":0.36738527,"Y":0.30400765},{"X":0.3681559,"Y":0.31839332},{"X":0.33935723,"Y":0.32113603}]},"Id":6,"ParentId":null,"Type":"LINE"},{"Confidence":55.91945,"DetectedText":"CEO","Geometry":{"BoundingBox":{"Height":0.0068359375,"Left":0.5097656,"Top":0.3173828,"Width":0.01977539},"Polygon":[{"X":0.5097656,"Y":0.3173828},{"X":0.529541,"Y":0.3173828},{"X":0.529541,"Y":0.32421875},{"X":0.5097656,"Y":0.32421875}]},"Id":7,"ParentId":null,"Type":"LINE"},{"Confidence":91.4621,"DetectedText":"SORBETTI","Geometry":{"BoundingBox":{"Height":0.022227224,"Left":0.34146148,"Top":0.3126071,"Width":0.04170845},"Polygon":[{"X":0.34146148,"Y":0.3191558},{"X":0.38173592,"Y":0.3126071},{"X":0.38316995,"Y":0.32828566},{"X":0.3428955,"Y":0.33483434}]},"Id":8,"ParentId":null,"Type":"LINE"},{"Confidence":18.511469,"DetectedText":"ARTIGLANALI","Geometry":{"BoundingBox":{"Height":0.0153366085,"Left":0.34973434,"Top":0.32501334,"Width":0.03223709},"Polygon":[{"X":0.34973434,"Y":0.3278232},{"X":0.3813451,"Y":0.32501334},{"X":0.38197145,"Y":0.33754012},{"X":0.3503607,"Y":0.34034997}]},"Id":9,"ParentId":null,"Type":"LINE"},{"Confidence":11.562635,"DetectedText":"DO","Geometry":{"BoundingBox":{"Height":0.018554688,"Left":0.48266602,"Top":0.3232422,"Width":0.010986328},"Polygon":[{"X":0.48266602,"Y":0.3232422},{"X":0.49365234,"Y":0.3232422},{"X":0.49365234,"Y":0.34179688},{"X":0.48266602,"Y":0.34179688}]},"Id":10,"ParentId":null,"Type":"LINE"},{"Confidence":9.578356,"DetectedText":"AL","Geometry":{"BoundingBox":{"Height":0.0048828125,"Left":0.85253906,"Top":0.33007812,"Width":0.008056641},"Polygon":[{"X":0.85253906,"Y":0.33007812},{"X":0.8605957,"Y":0.33007812},{"X":0.8605957,"Y":0.33496094},{"X":0.85253906,"Y":0.33496094}]},"Id":11,"ParentId":null,"Type":"LINE"},{"Confidence":12.494729,"DetectedText":"RU","Geometry":{"BoundingBox":{"Height":0.0048828125,"Left":0.8532715,"Top":0.33789062,"Width":0.005859375},"Polygon":[{"X":0.8532715,"Y":0.33789062},{"X":0.85913086,"Y":0.33789062},{"X":0.85913086,"Y":0.34277344},{"X":0.8532715,"Y":0.34277344}]},"Id":12,"ParentId":null,"Type":"LINE"},{"Confidence":29.937012,"DetectedText":"ROFOS","Geometry":{"BoundingBox":{"Height":0.009765625,"Left":0.49731445,"Top":0.3564453,"Width":0.02709961},"Polygon":[{"X":0.49731445,"Y":0.3564453},{"X":0.52441406,"Y":0.3564453},{"X":0.52441406,"Y":0.36621094},{"X":0.49731445,"Y":0.36621094}]},"Id":13,"ParentId":null,"Type":"LINE"},{"Confidence":46.844078,"DetectedText":"WORK","Geometry":{"BoundingBox":{"Height":0.0087890625,"Left":0.4416504,"Top":0.5986328,"Width":0.010253906},"Polygon":[{"X":0.4416504,"Y":0.5986328},{"X":0.4519043,"Y":0.5986328},{"X":0.4519043,"Y":0.6074219},{"X":0.4416504,"Y":0.6074219}]},"Id":14,"ParentId":null,"Type":"LINE"},{"Confidence":98.87242,"DetectedText":"stúdio","Geometry":{"BoundingBox":{"Height":0.033067804,"Left":0.5219428,"Top":0.10933271,"Width":0.055403214},"Polygon":[{"X":0.5219428,"Y":0.11542422},{"X":0.5756241,"Y":0.10933271},{"X":0.577346,"Y":0.136309},{"X":0.52366465,"Y":0.14240052}]},"Id":15,"ParentId":0,"Type":"WORD"},{"Confidence":43.660637,"DetectedText":"+","Geometry":{"BoundingBox":{"Height":0.014833552,"Left":0.07646651,"Top":0.16543765,"Width":0.01924213},"Polygon":[{"X":0.07721285,"Y":0.16543765},{"X":0.09570864,"Y":0.16733466},{"X":0.09496229,"Y":0.18027121},{"X":0.07646651,"Y":0.17837422}]},"Id":16,"ParentId":1,"Type":"WORD"},{"Confidence":55.96377,"DetectedText":"mmeOut","Geometry":{"BoundingBox":{"Height":0.054723535,"Left":0.5130118,"Top":0.1389399,"Width":0.07204513},"Polygon":[{"X":0.5130118,"Y":0.15007943},{"X":0.58104265,"Y":0.1389399},{"X":0.58505696,"Y":0.18252389},{"X":0.5170261,"Y":0.19366343}]},"Id":17,"ParentId":2,"Type":"WORD"},{"Confidence":99.303085,"DetectedText":"DAVVER","Geometry":{"BoundingBox":{"Height":0.032300618,"Left":0.34778282,"Top":0.24800797,"Width":0.056585997},"Polygon":[{"X":0.34908095,"Y":0.24800797},{"X":0.40436882,"Y":0.25261527},{"X":0.4030707,"Y":0.28030857},{"X":0.34778282,"Y":0.27570125}]},"Id":18,"ParentId":3,"Type":"WORD"},{"Confidence":99.391266,"DetectedText":"NÓS","Geometry":{"BoundingBox":{"Height":0.029296875,"Left":0.49804688,"Top":0.25878906,"Width":0.024902344},"Polygon":[{"X":0.49804688,"Y":0.25878906},{"X":0.5229492,"Y":0.25878906},{"X":0.5229492,"Y":0.28808594},{"X":0.49804688,"Y":0.28808594}]},"Id":19,"ParentId":4,"Type":"WORD"},{"Confidence":99.00748,"DetectedText":"É","Geometry":{"BoundingBox":{"Height":0.028320312,"Left":0.5266113,"Top":0.2607422,"Width":0.008056641},"Polygon":[{"X":0.5266113,"Y":0.2607422},{"X":0.53466797,"Y":0.2607422},{"X":0.53466797,"Y":0.2890625},{"X":0.5266113,"Y":0.2890625}]},"Id":20,"ParentId":4,"Type":"WORD"},{"Confidence":99.44593,"DetectedText":"MAIS","Geometry":{"BoundingBox":{"Height":0.02701009,"Left":0.53695196,"Top":0.2657945,"Width":0.03213005},"Polygon":[{"X":0.5379318,"Y":0.2657945},{"X":0.569082,"Y":0.2679805},{"X":0.5681021,"Y":0.2928046},{"X":0.53695196,"Y":0.29061863}]},"Id":21,"ParentId":4,"Type":"WORD"},{"Confidence":99.521454,"DetectedText":"BOLOS","Geometry":{"BoundingBox":{"Height":0.028628133,"Left":0.57057005,"Top":0.26777104,"Width":0.038847197},"Polygon":[{"X":0.57170254,"Y":0.26777104},{"X":0.6094172,"Y":0.27072906},{"X":0.6082847,"Y":0.29639918},{"X":0.57057005,"Y":0.29344118}]},"Id":22,"ParentId":4,"Type":"WORD"},{"Confidence":99.27703,"DetectedText":"GARRAFEIRA","Geometry":{"BoundingBox":{"Height":0.029680278,"Left":0.6584948,"Top":0.27506918,"Width":0.065622866},"Polygon":[{"X":0.65956414,"Y":0.27506918},{"X":0.72411764,"Y":0.28003484},{"X":0.7230483,"Y":0.30474946},{"X":0.6584948,"Y":0.2997838}]},"Id":23,"ParentId":5,"Type":"WORD"},{"Confidence":99.2488,"DetectedText":"NACIONAL","Geometry":{"BoundingBox":{"Height":0.026712036,"Left":0.7237396,"Top":0.28115332,"Width":0.05005829},"Polygon":[{"X":0.7247484,"Y":0.28115332},{"X":0.7737979,"Y":0.28500035},{"X":0.7727892,"Y":0.30786538},{"X":0.7237396,"Y":0.30401835}]},"Id":24,"ParentId":5,"Type":"WORD"},{"Confidence":98.42771,"DetectedText":"GELATI","Geometry":{"BoundingBox":{"Height":0.017128397,"Left":0.33858657,"Top":0.30400765,"Width":0.02956932},"Polygon":[{"X":0.33858657,"Y":0.30675036},{"X":0.36738527,"Y":0.30400765},{"X":0.3681559,"Y":0.31839332},{"X":0.33935723,"Y":0.32113603}]},"Id":25,"ParentId":6,"Type":"WORD"},{"Confidence":55.91945,"DetectedText":"CEO","Geometry":{"BoundingBox":{"Height":0.0068359375,"Left":0.5097656,"Top":0.3173828,"Width":0.01977539},"Polygon":[{"X":0.5097656,"Y":0.3173828},{"X":0.529541,"Y":0.3173828},{"X":0.529541,"Y":0.32421875},{"X":0.5097656,"Y":0.32421875}]},"Id":26,"ParentId":7,"Type":"WORD"},{"Confidence":91.4621,"DetectedText":"SORBETTI","Geometry":{"BoundingBox":{"Height":0.022227224,"Left":0.34146148,"Top":0.3126071,"Width":0.04170845},"Polygon":[{"X":0.34146148,"Y":0.3191558},{"X":0.38173592,"Y":0.3126071},{"X":0.38316995,"Y":0.32828566},{"X":0.3428955,"Y":0.33483434}]},"Id":27,"ParentId":8,"Type":"WORD"},{"Confidence":18.511469,"DetectedText":"ARTIGLANALI","Geometry":{"BoundingBox":{"Height":0.0153366085,"Left":0.34973434,"Top":0.32501334,"Width":0.03223709},"Polygon":[{"X":0.34973434,"Y":0.3278232},{"X":0.3813451,"Y":0.32501334},{"X":0.38197145,"Y":0.33754012},{"X":0.3503607,"Y":0.34034997}]},"Id":28,"ParentId":9,"Type":"WORD"},{"Confidence":11.562635,"DetectedText":"DO","Geometry":{"BoundingBox":{"Height":0.018554688,"Left":0.48266602,"Top":0.3232422,"Width":0.010986328},"Polygon":[{"X":0.48266602,"Y":0.3232422},{"X":0.49365234,"Y":0.3232422},{"X":0.49365234,"Y":0.34179688},{"X":0.48266602,"Y":0.34179688}]},"Id":29,"ParentId":10,"Type":"WORD"},{"Confidence":9.578356,"DetectedText":"AL","Geometry":{"BoundingBox":{"Height":0.0048828125,"Left":0.85253906,"Top":0.33007812,"Width":0.008056641},"Polygon":[{"X":0.85253906,"Y":0.33007812},{"X":0.8605957,"Y":0.33007812},{"X":0.8605957,"Y":0.33496094},{"X":0.85253906,"Y":0.33496094}]},"Id":30,"ParentId":11,"Type":"WORD"},{"Confidence":12.494729,"DetectedText":"RU","Geometry":{"BoundingBox":{"Height":0.0048828125,"Left":0.8532715,"Top":0.33789062,"Width":0.005859375},"Polygon":[{"X":0.8532715,"Y":0.33789062},{"X":0.85913086,"Y":0.33789062},{"X":0.85913086,"Y":0.34277344},{"X":0.8532715,"Y":0.34277344}]},"Id":31,"ParentId":12,"Type":"WORD"},{"Confidence":29.937012,"DetectedText":"ROFOS","Geometry":{"BoundingBox":{"Height":0.009765625,"Left":0.49731445,"Top":0.3564453,"Width":0.02709961},"Polygon":[{"X":0.49731445,"Y":0.3564453},{"X":0.52441406,"Y":0.3564453},{"X":0.52441406,"Y":0.36621094},{"X":0.49731445,"Y":0.36621094}]},"Id":32,"ParentId":13,"Type":"WORD"},{"Confidence":46.844078,"DetectedText":"WORK","Geometry":{"BoundingBox":{"Height":0.0087890625,"Left":0.4416504,"Top":0.5986328,"Width":0.010253906},"Polygon":[{"X":0.4416504,"Y":0.5986328},{"X":0.4519043,"Y":0.5986328},{"X":0.4519043,"Y":0.6074219},{"X":0.4416504,"Y":0.6074219}]},"Id":33,"ParentId":14,"Type":"WORD"}],"TextModelVersion":"3.0","ResultMetadata":{}}},"id":"image-1","type":"image"}}`;
+            // aug = aug.replaceAll('""', '"');
+
+            var sig = ``;
+
+            this.aioToSign = aio;
+
+            var aio_ = JSON.parse(aio);
+            var aug_ = {};
+
+            try {
+              aug_ = JSON.parse(aug);
+            } catch(e) {
+              console.log(" > error:" + e.message)
+            }
+
+            this.aio = aio_;
+            this.sig = sig;
+            this.aug = aug;
+
+            aio_.elements.forEach((item, i) => {
+              if (aug_[item.id] !== undefined) {
+                var augment = aug_[item.id].augment;
+                item["augment"] = augment;
+              }
+
+              this.addElement(item.type, item.param, item.param, item);
+            });
+            aio_.recipients.forEach((item, i) => {
+              this.addRecipient(item);
+            });
+
+            // app::public
+            if (this.isRecipient("app::public")) {
+              // public.json
+              var parts = window.location.href.split("/");
+              var uuid = this.uuid('author');
+              var aioid = parts[parts.length - 1].replace(".htm", "");
+              var cid = parts[parts.length - 2];
+
+              var url = "https://memori.as/app::public/" + uuid + "/" + aioid + "/public.json";
+              if (aioid == "indexl") {
+                 url = "https://memori.as/app::public/" + cid + "/public.json";
+              }
+
+              fetch(url)
+              .then(function (response) {
+               // The API call was successful!
+                return response.json();
+              }).then(function (data) {
+                M.get("#www").setAttribute("href", data.www);
+                M.get("#ipfs").setAttribute("href", data.ipfs);
+                M.get("#mem").setAttribute("href", data.mem);
+
+                var cod = M.get("#cod");
+                var html = cod.innerHTML;
+                html = html.replace("--verify IPFS_URL", "--verify " + data.ipfs);
+                cod.innerHTML = html;
+
+                var url = M.get("#ipfs-url");
+                url.innerHTML = data.ipfs;
+
+              }).catch(function (err) {
+                // There was an error
+                console.warn('Something went wrong.', err);
+              }).finally(() => {
+              });
+            }
+          },
+          title: function(aio) {
+            return M.title(aio);
+          },
+          tags: function(aio) {
+            return M.tags(aio);
+          },
+          addElement: function(type, f, name, el) {
+            var controls = "";
+            var element = "";
+            var value = "";
+
+            f = "assets/" + f;
+
+            if (el === undefined) {
+              this.e = this.e + 1;
+            } else {
+              this.e = parseInt(el.id.split("-")[1]);
+              value = name;
+            }
+
+            if (type == "text") {
+              controls = '<div id="controls-' + this.e + '" class="field has-addons controls"><p class="control"><a class="button is-delete is-small" onclick="removeElement(' + "'" + type + "'" + ', ' + this.e + ')" onMouseOver="highlightElement(' + "'" + type + "'" + ', ' + this.e + ')" onMouseOut="removeHighlightElement(' + "'" + type + "'" + ', ' + this.e + ')"><span class="icon is-small"><i class="fas fa-times"></i></span></a></p></div>';
+              element = controls + '<textarea id="text-' + this.e + '" readonly class="element textarea" rows="1" placeholder="Type something! ex: @leozeba what are you doing?">' + value + '</textarea>';
+
+              if (el != undefined && el.augment != undefined) {
+                var tags = [];
+
+                var cloud = el.augment.cloud;
+                var words = Object.keys(cloud);
+                var counts = [];
+                var keys = el.augment.keys;
+
+                for (var i = 0; i < words.length; i++) {
+                  counts[i] = cloud[words[i]];
+                }
+
+                for (var i = 0; i < keys.length; i++) {
+                  var parts = keys[i].split("-");
+                  var count = parseInt(parts[0]);
+                  var word = parts[1];
+                  var tag = '<span class="tag augment-label is-medium is-rounded" style="border-bottom-left-radius: 10rem; border-top-left-radius: 10rem; padding-right: 0; font-weight: 600;">' + word + '</span><span class="tag is-medium" style="margin-right: 0.5rem; border-bottom-right-radius: 50%; border-top-right-radius: 50%;">' + count + '</span>';
+                  tags.push(tag);
+                }
+
+                element = element + '<div class="control-' + this.e + '"><div id="tags-' + this.e + '" class="tags has-addons">' + tags.join("") + '</div></div>';
+              }
+            }
+
+            if (type == "image") {
+              controls = '<div id="controls-' + this.e + '" class="field has-addons controls"><p class="control"><a class="button is-delete is-small" onclick="removeElement(' + "'" + type + "'" + ', ' + this.e + ')" onMouseOver="highlightElement(' + "'" + type + "'" + ', ' + this.e + ')" onMouseOut="removeHighlightElement(' + "'" + type + "'" + ', ' + this.e + ')"><span class="icon is-small"><i class="fas fa-times"></i></span></a></p></div>';
+              element = controls + '<img id="image-' + this.e + '" class="element image" src="' + f + '.aug"/>';
+
+              if (el != undefined && el.augment != undefined) {
+                var tags = [];
+
+                if (el.augment.labels) {
+                  var colors = el.augment.labels.ImageProperties.DominantColors;
+
+                  for (var i = 0; i < colors.length; i++) {
+                    var tag = '<span class="tag augment-label color is-medium is-rounded" style="background:' + colors[i].HexCode + ';">' + '<a href="search.html?q=' + colors[i].CSSColor + '">' + '#' + '</a>' + '</span>';
+                    tags.push(tag);
+                  }
+
+                  for (var i = 0; i < colors.length; i++) {
+                    var tag = '<span class="tag augment-label css is-medium is-rounded">' + '<a href="search.html?q=' + colors[i].CSSColor + '">#' + colors[i].CSSColor + '</a>' + '</span>';
+                    tags.push(tag);
+                  }
+
+                  var labels = el.augment.labels.Labels;
+
+                  for (var i = 0; i < labels.length; i++) {
+                    var tag = '<span class="tag augment-label is-medium is-rounded">' + labels[i].Name + '</span>';
+                    tags.push(tag);
+                  }
+                }
+
+                if (el.augment.text) {
+                  var text = el.augment.text.TextDetections;
+                  for (var i = 0; i < text.length; i++) {
+                    var tag = '<span class="tag augment-text is-medium is-rounded">' + text[i].DetectedText + '</span>';
+                    if (tags.indexOf(tag) == -1) {
+                      tags.push(tag);
+                    }
+                  }
+                }
+
+                if (el.augment.faces) {
+                  var faces = el.augment.faces.FaceDetails;
+                  for (var i = 0; i < faces.length; i++) {
+                    var details = faces[i];
+                    var keys = Object.keys(details);
+
+                    var tag = '<span class="tag augment-face is-medium" style="background: transparent !important; border: none !important; color: var(--color-0) !important;"><span class="icon is-small"><i class="fas fa-user"></i></span></span>';
+                    tags.push(tag);
+
+                    for (var j = 0; j < keys.length; j++) {
+                      var key = keys[j];
+
+                      // AgeRange
+                      if (key == "AgeRange") {
+                        var detail = details[key];
+                        var tag = '<span class="tag augment-face age is-medium is-rounded">' + detail.Low + '-' + detail.High + '</span>';
+                        tags.push(tag);
+                      }
+
+                      // Emotions
+                      if (key == "Emotions") {
+                        var array = details[key];
+
+                        for (var k = 0; k < array.length; k++) {
+                          var item = array[k];
+                          if (item.Type) {
+                            if (item.Confidence > 70.0) {
+                              var tag = '<span class="tag augment-face emotion is-medium is-rounded">' + item.Type + '</span>';
+                              tags.push(tag);
+                            }
+                          }
+                        }
+                      }
+
+                      // Gender
+                      if (key == "Gender") {
+                        var item = details[key];
+                        if (item.Value) {
+                          if (item.Confidence > 70.0) {
+                            var tag = '<span class="tag augment-face gender is-medium is-rounded">' + item.Value + '</span>';
+                            tags.push(tag);
+                          }
+                        }
+                      }
+
+                      // Landmarks
+                      if (key == "Landmarks") {
+                        var item = details[key];
+                        // console.log(item);
+                      }
+
+                      // Pose
+                      if (key == "Pose") {
+                        var item = details[key];
+                        // console.log(item);
+                      }
+
+                      // Quality
+                      if (key == "Quality") {
+                        var item = details[key];
+                        // console.log(item);
+                      }
+
+                      // Beard, Eyeglasses, EyesOpen, MouthOpen, Mustache, Smile, Sunglasses
+                      var value = details[key].Value;
+                      if (value == true) {
+                        var tag = '<span class="tag augment-face is-medium is-rounded">' + keys[j] + '</span>';
+                        tags.push(tag);
+                      }
+                    }
+                  }
+
+                  element = element + '<div id="tags-' + this.e + '" class="tags">' + tags.join("") + '</div>';
+                }
+              }
+            }
+
+            if (type == "video") {
+              controls = '<div id="controls-' + this.e + '" class="field has-addons controls" style="margin-bottom: 0.75rem !important;"><p class="control"><a class="button is-delete is-small" onclick="removeElement(' + "'" + type + "'" + ', ' + this.e + ')" onMouseOver="highlightElement(' + "'" + type + "'" + ', ' + this.e + ')" onMouseOut="removeHighlightElement(' + "'" + type + "'" + ', ' + this.e + ')"><span class="icon is-small"><i class="fas fa-times"></i></span></a></p></div>'
+              element = controls + '<video id="video-' + this.e + '" class="element video" controls><source src="' + f + '" type="video/mp4"></video>'
+            }
+
+            if (type == "file") {
+              controls = '<div id="controls-' + this.e + '" class="field has-addons controls"><p class="control"><a class="button is-delete is-small" onclick="removeElement(' + "'" + type + "'" + ', ' + this.e + ')" onMouseOver="highlightElement(' + "'" + type + "'" + ', ' + this.e + ')" onMouseOut="removeHighlightElement(' + "'" + type + "'" + ', ' + this.e + ')"><span class="icon is-small"><i class="fas fa-times"></i></span></a></p></div>';
+              element = controls + '<p id="file-' + this.e + '" class="element file" style="font-size: 1.85rem;" data-name="' + (el && el.data && el.data["name"] ? el.data["name"] : name) + '" data-content="' + f + '"><a href="' + f + '"><span class="icon is-large"><i class="fas fa-paperclip fa-lg"></span></i>' + (el && el.data && el.data["name"] ? el.data["name"] : name) + '</a></p>'
+            }
+
+            var elements = M.get("#elements");
+            elements.insertAdjacentHTML("beforeend", element);
+
+            // Wordcloud
+            if (counts !== undefined) {
+              var id = this.e;
+              var max = counts.reduce(function(a, b) {
+                return Math.max(a, b);
+              });
+              var containerWidth = +d3.select(".container").style("width").slice(0, -2);
+              var cssFill = getComputedStyle(M.get("body")).getPropertyValue("--color-0");
+              var layout = d3.layout.cloud()
+                .size([containerWidth, 500])
+                .words(words.map(function(d, index) {
+                  return {text: d, size: (cloud[d] / max) * 90, test: "haha"};
+                }))
+                .padding(5)
+                .rotate(function() { return ~~(Math.random() * 2) * 90; })
+                .font("Impact")
+                .fontSize(function(d) { return d.size; })
+                .on("end", function draw(words) {
+                  d3.select(".control-" + id)
+                  .append("svg")
+                  .attr("width", containerWidth)
+                  .attr("height", layout.size()[1])
+                  .append("g")
+                  .attr("transform", "translate(" + layout.size()[0] / 2 + "," + layout.size()[1] / 2 + ")")
+                  .selectAll("text")
+                  .data(words)
+                  .enter()
+                  .append("text")
+                  .style("font-size", function(d) { return d.size + "px"; })
+                  .style("font-family", "Impact")
+                  .style("fill", cssFill)
+                  .attr("text-anchor", "middle")
+                  .attr("transform", function(d) {
+                    return "translate(" + [d.x, d.y] + ")rotate(" + d.rotate + ")";
+                  })
+                  .text(function(d) { return d.text; });
+                });
+              layout.start();
+            }
+
+            autosize(document.querySelectorAll("textarea"));
+
+            // this.showControls("#controls-" + this.e);
+            this.focusOn("#" + type + "-" + this.e);
+          },
+          focusOn: function(element) {
+            M.get(element).focus();
+          },
+          rotate: function() {
+            var el = M.get(".element.image");
+            if (el !== undefined) {
+              var transform = el.style.transform;
+              console.log(transform);
+              if (transform.indexOf("-90") > 0) {
+                transform = "rotate(-180deg)";
+              } else if (transform.indexOf("-180") > 0) {
+                transform = "rotate(-270deg)";
+              } else if (transform.indexOf("-270") > 0) {
+                transform = "rotate(0deg)";
+              } else {
+                transform = "rotate(-90deg)";
+              }
+              el.style.transform = transform;
+            }
+          },
+          uuid: function(type) {
+            if (type == "author") {
+              return this.aio.author;
+            }
+            return M.storage("memori.as-m-uuid");
+          },
+          addRecipient: function(uuid) {
+            for (var i = 0; i < this.accounts.length; i++) {
+              var account = this.accounts[i];
+              if (account.auid == uuid) {
+                this.accounts.splice(i, 1);
+                this.recipients.push(account);
+                break;
+              }
+            }
+          },
+          isRecipient: function(account) {
+            var isRecipient = false;
+            for (var i = 0; i < this.aio.recipients.length; i++) {
+              var recipient = this.aio.recipients[i];
+              if (recipient == account) {
+                isRecipient = true;
+                break;
+              }
+            }
+            if (isRecipient == false) {
+              if (this.uuid() == account) {
+                isRecipient = true;
+              }
+            }
+            return isRecipient;
+          },
+          accountPicture: function(recipient) {
+            var a = "assets/recipient--" + recipient.replace("::", "--") + "-picture.png";
+            return a;
+          },
+          account: function(account) {
+            var r;
+            for (var i = 0; i < this.accounts.length; i++) {
+              var recipient = this.accounts[i];
+              if (recipient["m-auid"] == account) {
+                r = recipient;
+                break;
+              }
+            }
+            if (r == undefined) {
+              r = {};
+            }
+            return r;
+          },
+          picture: function() {
+            return M.storage("memori.as-m-picture");
+          },
+          showCode: function() {
+            M.get("#elements-container").style.display = "none";
+            M.get("#code-container").style.display = "block";
+
+            M.get("#show-code").style.display = "none";
+            M.get("#hide-code").style.display = "block";
+
+            var aio = JSON.stringify(JSON.parse(this.aioToSign), null, 4);
+            var sig = this.sig;
+            var aug = JSON.stringify(JSON.parse(this.aug), null, 4);
+
+            M.get("#aio").innerHTML = aio;
+            if (sig != "") {
+              M.get("#sig").innerHTML = sig;
+            }
+            if (aug != "") {
+              M.get("#aug").innerHTML = aug;
+            }
+          },
+          hideCode: function() {
+            M.get("#elements-container").style.display = "block";
+            M.get("#code-container").style.display = "none";
+
+            M.get("#show-code").style.display = "block";
+            M.get("#hide-code").style.display = "none";
+          },
+          replyProfileImageUrl: function(reply) {
+            var author = this.replyAuthor(reply);
+            return this.accountPicture(author);
+          },
+          replyAuthor: function(reply) {
+            var author = "";
+            var parts = reply.split("&");
+            for (var i = 0; i < parts.length; i++) {
+              var p = parts[i];
+              if (p.indexOf("author=") >= 0) {
+                author = p.replace("author=", "");
+                break;
+              }
+            }
+
+            return author;
+          },
+          replyUpdated: function(reply) {
+            var updated = "";
+            var parts = reply.split("&");
+            for (var i = 0; i < parts.length; i++) {
+              var p = parts[i];
+              if (p.indexOf("updated=") >= 0) {
+                updated = p.replace("updated=", "");
+                break;
+              }
+            }
+
+            return updated;
+          },
+          replyTitle: function(reply) {
+            var title = "";
+            var parts = reply.split("&");
+            for (var i = 0; i < parts.length; i++) {
+              var p = parts[i];
+              if (p.indexOf("title=") >= 0) {
+                title = p.replace("title=", "");
+                break;
+              }
+            }
+
+            return title.split(" #")[0];
+          },
+          replyAio: function(reply) {
+            var aio = "";
+            var parts = reply.split("&");
+            for (var i = 0; i < parts.length; i++) {
+              var p = parts[i];
+              if (p.indexOf("aio=") >= 0) {
+                aio = p.replace("aio=", "");
+                break;
+              }
+            }
+
+            return aio;
+          },
+          showContent: function() {
+            M.get("#the-content").style.display = "block";
+
+            M.get("#hide-content").style.display = "inline";
+            M.get("#show-content").style.display = "none";
+          },
+          hideContent: function() {
+            M.get("#the-content").style.display = "none";
+
+            M.get("#hide-content").style.display = "none";
+            M.get("#show-content").style.display = "inline";
+          }
+        },
+        mounted() {
+          this.minit();
+          var message = M.params("message");
+          if (message !== null) {
+            M.showMessage("#app", "is-success", message);
+          }
+        },
+        updated() {
+        }
+      });
+    });
+  </script>
+
+  <script>
+    M.theme();
+  </script>
+
+</body>
+</html>
