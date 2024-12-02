@@ -1,0 +1,911 @@
+<!doctype html>
+<html class="no-js" lang="">
+
+<head>
+  <meta charset="utf-8">
+  <title>MEMORIAS | Your personal web3 database</title>
+  <meta name="description" content="Collect, manage, safeguard, augment & share data">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <meta name="google-signin-client_id" content="24613691161-3a990mj8uer0uero52cml7u34odspqe6.apps.googleusercontent.com">
+
+  <link rel="manifest" href="site.webmanifest">
+  <link rel="apple-touch-icon" href="themes/default/icon.png">
+  <!-- Place favicon.ico in the root directory -->
+  <link rel="shortcut icon" href="themes/default/favicon.ico" />
+
+  <!-- fontawesome.com -->
+  <link rel="stylesheet" href="themes/default/css/all.min.css">
+  <!-- bulma.io -->
+  <link rel="stylesheet" href="themes/default/css/bulma.min.css">
+  <link rel="stylesheet" href="themes/default/css/bulma-pageloader.min.css">
+
+  <!-- highlight.min.js -->
+  <link rel="stylesheet" href="themes/default/css/styles/default.min.css">
+
+  <!-- memori.as -->
+  <link rel="stylesheet" href="themes/default/css/memori.as.css">
+
+  <style>
+    #recipients .button:hover {
+      color: var(--color-4) !important;
+    }
+
+    .element.image, .element.video, .element.file {
+      border-color: transparent;
+      box-shadow: none;
+    }
+
+    .tags {
+      margin-top: 1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .tag.augment-label.color {
+      border: 1px solid var(--color-0) !important;
+    }
+    .tag.augment-label.css {
+      background: var(--color-4) !important;
+      border: 1px solid var(--color-0) !important;
+    }
+
+    .tag.augment-face.age {
+      border-color: var(--color-0) !important;
+      color: var(--color-0) !important;
+      background: var(--color-4) !important;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="app" style="display: hidden;" v-cloak>
+    <!-- pageloader -->
+    <div class="pageloader is-white">
+      <span class="title">Loading...</span>
+    </div>
+
+    <section class="hero is-fullheight">
+      <!-- navbar -->
+      <nav class="navbar header" role="navigation" aria-label="main navigation">
+        <div id="navbarBasicExample" class="navbar-menu">
+          <div class="navbar-start">
+              <a href="https://memori.as" target="_blank"><img src="themes/default/img/memorias.png" style="height: 3.25rem;"/></a>
+          </div>
+          <div class="navbar-end">
+            <div id="actions">
+              <div class="container-01">
+                <div class="container-02">
+                  <div class="field has-addons">
+                    <a id="show-code" class="button button-1 is-medium is-circle" v-on:click="showCode()">
+                      <span class="icon">
+                        <!-- <i class="fa fa-share-alt"></i> -->
+                        <i class="fas fa-code"></i>
+                      </span>
+                    </a>
+                    <a id="hide-code" class="button is-medium is-circle is-borderless" v-on:click="hideCode()" style="display: none;">
+                      <span class="icon">
+                        <!-- <i class="fa fa-share-alt"></i> -->
+                        <i class="fa fa-chevron-left"></i>
+                      </span>
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      <!-- message -->
+      <article class="message is-danger" style="display: none;">
+        <div class="message-body" style="border-radius: 0;">
+          <p style="font-size: 1.25rem;"></p>
+        </div>
+      </article>
+
+      <!-- elements -->
+      <div id="elements-container" class="hero-body">
+        <div class="container">
+          <div class="box-title" v-if="aio != null">
+            <article class="media">
+              <div class="media-left is-hidden-mobile">
+                <div class="thumb is-circle" v-bind:style="'background-image: url(assets/author--' + aio.author.replace('::', '--') + '-picture.png); border: 1px solid var(--color-3);'">
+                </div>
+              </div>
+              <div class="media-content">
+                <div class="content">
+                  <!-- Title -->
+                  <p class="title">
+                    <strong>
+                      {{ title(aio) }}
+                    </strong>
+                  </p>
+                  <!-- Tags -->
+                  <div class="tags" v-if="tags(aio).length > 0">
+                    <span class="tag is-medium is-rounded" v-for="(tag, index) in tags(aio)" style="margin-right: 0.5rem;">#{{ tag }}</span>
+                    <span class="tag updated is-medium is-rounded">{{ aio.Updated }}{{ aio.updated }}</span>
+                  </div>
+                  <!-- Signature -->
+                  <div class="signature">
+                    <span class="icon-text tag sig is-medium is-rounded" v-if="aio != undefined && sig != ''">
+                      <span class="icon">
+                        <i class="fab fa-ethereum"></i>
+                      </span>
+                      <span v-bind:data-sig="sig">{{ sig.substring(0, 16) }}...{{ sig.substring(sig.length - 4) }}</span>
+                    </span>
+                  </div>
+                  <!-- Recipients -->
+                  <div class="recipients has-text-left">
+                    <div class="field has-addons">
+                      <div id="recipients" class="control" style="width: 100%; display: flex; background: transparent; padding: 0;">
+                        <!-- author -->
+                        <div class="author">
+                          <button class="button is-rounded is-borderless is-fullwidth" v-bind:data-uuid="uuid('author')" style="border: 1px solid var(--color-3); justify-content: flex-start; margin: 0 0.5rem 0 0; border-radius: 5rem; padding-right: 0.25rem; cursor: default;">
+                            <span class="has-badge-rounded has-badge-info">{{ uuid('author') }}</span>
+                          </button>
+                        </div>
+                        <!-- recipient (uuid) -->
+                        <div class="recipient" v-if="isRecipient('')">
+                          <a class="button is-fullwidth" v-bind:data-uuid="uuid()" v-bind:title="uuid()" style="justify-content: flex-start; margin: 0; border-radius: 5rem; padding-right: 0.25rem;  background: var(--color-1); border-color: var(--color-1); color: var(--color-4); cursor: default; padding-left: 0.5rem; padding-right: 0.5rem;">
+                            <span class="icon" style="width: 2rem; height: 2rem;" v-if="uuid('author') != uuid()">
+                              <img v-bind:src="picture()" class="is-circle">
+                            </span>
+                            <span class="has-badge-rounded has-badge-info" v-if="uuid('author') == uuid()">{{ uuid() }}</span>
+                          </a>
+                        </div>
+                        <!-- recipient (others) -->
+                        <div class="recipient" v-for="(recipient, index) in aio.recipients">
+                          <!-- "uuid() != recipient" -->
+                          <a v-bind:href="'account.html?auid=' + recipient" class="button is-fullwidth" v-bind:data-uuid="recipient" v-bind:title="recipient" style="justify-content: flex-start; margin: 0; border-radius: 5rem; padding-right: 0.25rem; padding-left: 0.5rem; padding-right: 0.5rem;" v-if="recipient != 'app::public'">
+                            <span class="icon" style="width: 2rem; height: 2rem;">
+                              <img v-bind:src="accountPicture(recipient)" class="is-circle">
+                            </span>
+                            <span class="has-badge-rounded has-badge-info" v-if="index < 0">{{ recipient }}</span>
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="media-right">
+                <!-- app::public -->
+                <p id="public" v-if="isRecipient('app::public')">
+                  <span class="tag is-small" style="border-radius: 2rem; background: var(--color-0); color: var(--color-4);">app::public</span>
+                  <span class="tag is-small" style="border-radius: 2rem; background: var(--color-4); color: var(--color-1);"><a id="www" v-bind:href="'https://memori.as/app::public/' + uuid() + '/' + aio['Id'] + '/' + aio['Id'] + '.htm'" target="_blank">WWW</a></span>
+                  <span class="tag is-small" style="border-radius: 2rem; background: var(--color-4); color: var(--color-1);"><a id="ipfs" v-bind:href="'https://ipfs.filebase.io/ipfs/' + aio['Ipfs']" target="_blank">IPFS</a></span>
+                  <span class="tag is-small" style="border-radius: 2rem; background: var(--color-4); color: var(--color-1);"><a id="mem" v-bind:href="'https://memori.as/app::public/app::memori.as/' + aio['Mem'] + '.zip'" target="_blank">MEM</a></span>
+                </p>
+              </div>
+            </article>
+          </div>
+
+          <!-- content -->
+          <div id="content" class="column" style="min-height: 40rem;">
+            <div id="elements">
+            </div>
+          </div>
+
+          <hr>
+
+          <!-- box-reply -->
+          <div id="reply-aio" class="column" v-if="aio != null && aio.Reply != undefined && aio.Reply != ''" style="padding: 0.75rem;">
+            <div class="box box-reply">
+              <article class="media">
+                  <div class="media-left">
+                    <figure class="image is-96x96">
+                      <img v-if="uuid() == replyAuthor(aio.Reply)" v-bind:src="picture()" class="is-circle">
+                      <img v-else v-bind:src="replyProfileImageUrl(aio.Reply)" class="is-circle">
+                    </figure>
+                  </div>
+
+                  <div class="media-content">
+                    <div class="content">
+                      <p id="title" class="title" style="padding-left: 0; margin-top: 0; font-size: 2.5rem; margin-bottom: 0; font-family: 'Roboto Slab', serif;">
+                        <strong>
+                          <a v-bind:href="'viewer.html?aio=' + replyAio(aio.Reply) + '&author=' + replyAuthor(aio.Reply)" style="color:var(--color-0);">{{ replyTitle(aio.Reply) }}</a>
+                        </strong>
+                      </p>
+                    </div>
+                    <div class="tags">
+                      <span class="tag is-medium is-rounded is-black" v-if="uuid() == replyAuthor(aio.Reply)" style="cursor: default;">{{ replyAuthor(aio.Reply) }}</span>
+                      <span class="tag is-medium is-rounded is-black" v-else>{{ replyAuthor(aio.Reply) }}</span>
+
+                      <span class="tag is-medium is-rounded" v-for="(tag, index) in tags(aio)" style="margin-right: 0.5rem;">{{ '#' + tag }}</span>
+                      <span class="tag updated is-medium is-rounded">{{ replyUpdated(aio.Reply) }}</span>
+                    </div>
+                  </div>
+
+                  <div class="media-right">
+                  </div>
+                </article>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- code -->
+      <div id="code-container" class="hero-body" style="display: none;">
+        <div class="container">
+          <div class="box">
+            <pre style="background: var(--color-0) !important; color: var(--color-4) !important; padding: 0rem 1.5rem;">
+              <code id="cod" class="language-bash" style="background: var(--color-0) !important; color: var(--color-4) !important; font-size: 1rem;">
+#
+# Download MEMORIAS
+# git clone https://github.com/leozeba/MEMORIAS
+#
+go run MEMORIAS.go --verify IPFS_URL</code>
+            </pre>
+          </div>
+
+          <div class="box">
+            <h1 class="title">What is a MEMORIA?</h1>
+            <br/>
+            <p class="subtitle">
+              A MEMORIA is a JSON token file with the following attributes:
+              <table class="table is-fullwidth">
+                <thead>
+                  <tr>
+                    <th>Attribute</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><b>author</b></td>
+                    <td>string</td>
+                    <td>The creator of the MEMORIA</td>
+                  </tr>
+                  <tr>
+                    <td><b>title</b></td>
+                    <td>string</td>
+                    <td>The title of the content (Every word starting with # is a tag)</td>
+                  </tr>
+                  <tr>
+                    <td><b>recipients</b></td>
+                    <td>[]string</td>
+                    <td>A list containing the recipients of the content</td>
+                  </tr>
+                  <tr>
+                    <td><b>reply</b></td>
+                    <td>string</td>
+                    <td>The MEMORIA this one is a reply or linked to, if any.</td>
+                  </tr>
+                  <tr>
+                    <td><b>created</b></td>
+                    <td>string</td>
+                    <td>Timestamp of the creation.</td>
+                  </tr>
+                  <tr>
+                    <td><b>updated</b></td>
+                    <td>string</td>
+                    <td>Timestamp of the last update.</td>
+                  </tr>
+                  <tr>
+                    <td><b>elements</b></td>
+                    <td>[]json</td>
+                    <td>A collection of elements of the following types: <b>text, image, video, audio, file, brain</b></td>
+                  </tr>
+                </tbody>
+              </table>
+
+              Each element within the collection is characterized by a set of common attributes:
+
+              <table class="table is-fullwidth" style="margin-top: 1.5rem;">
+                <tbody>
+                  <tr>
+                    <td><b>type</b></td>
+                    <td>string</td>
+                    <td>The content-type of the element (text, image, video, audio, file, brain)</td>
+                  </tr>
+                  <tr>
+                    <td><b>data</b></td>
+                    <td>json</td>
+                    <td>Used for custom metadata depending of the content-type</td>
+                  </tr>
+                  <tr>
+                    <td><b>param</b></td>
+                    <td>string</td>
+                    <td>Hash (SHA3-512) of the content file alongside the content-type</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <ul style="list-style: disc; margin-left: 2rem;">
+                <li style="list-style: none; color: var(--color-1); margin-top: 1.5rem;">
+                  Example: "020aca4164b392d9...83dd4a271b889660.jpeg"<br/><br/>
+                  This structure ensures a standardized format for storing and exchanging diverse types of content within the JSON token file.
+                </li>
+              </ul>
+              <br>
+            </p>
+            <pre><code id="aio" class="language-json"></code></pre>
+          </div>
+          <div class="box">
+            <h1 class="title">How to verify this MEMORIA?</h1>
+            <br/>
+            <p class="subtitle">
+              To validate the content in this MEMORIA we need to download the MEM file (zip) containing
+              all assets referenced in the elements of the MEMORIA:
+
+              <ul style="list-style: disc; margin-left: 2rem;">
+                <li>Download the MEM file from <span id="ipfs-url"><a href="IPFS_URL">IPFS_URL</a><span>;</li>
+                <li>Unzip the file;</li>
+                <li>For element in the MEMORIA, we need to calculate the hash (SHA3-512) of the file in the <b>assets/</b> folder;</li>
+                <li style="list-style: none; color: var(--color-1);">
+                  The hash of each asset must match the prefix of the <b>param</b> value in the element.
+                  <br>
+                  This will guarantee that the assets in this MEMORIA are valid and have not been tampered.
+                </li>
+              </ul>
+            </p>
+          </div>
+
+          <div class="box" v-if="sig != ''">
+            <h1 class="title">How to verify the signature of this MEMORIA?</h1>
+            <br/>
+            <p class="subtitle">
+              To verify the signature of a signed MEMORIA we need to:
+              <ul style="list-style: disc; margin-left: 2rem;">
+                <li>Recover the signer's public key from the signature (.sig) and MEMORIA (.aio);</li>
+                <li>Recover the signer's address from the public key</li>
+                <li style="list-style: none; color: var(--color-1);">
+                  The recovered address must match the suffix of the "author" of MEMORIA.
+                </li>
+              </ul>
+            </p>
+            <pre><code id="sig" class="language-json"></code></pre>
+          </div>
+
+          <div class="box" v-if="aug != ''">
+            <h1 class="title">Augmented Inteligent Output</h1>
+            <br/>
+            <p class="subtitle">
+              These are the augmentations for this MEMORIA. It disclaims the models used for augmenting every element
+              as well as their results. It's a JSON file with the (.aug) extension. <a id="show-content" v-on:click="showContent()"><b>(show)</b><a id="hide-content" v-on:click="hideContent()" style="display: none;"><b>(hide)</b></a>
+            </p>
+            <pre id="the-content" style="display: none;"><code id="aug" class="language-json"></code></pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- navbar -->
+      <nav class="navbar footer" role="navigation" aria-label="main navigation">
+        <div id="navbarBasicExample" class="navbar-menu">
+          <div class="navbar-start">
+          </div>
+          <div class="navbar-end">
+          </div>
+        </div>
+      </nav>
+    </section>
+  </div>
+
+  <!-- vue.js -->
+  <script src="themes/default/js/vue.js"></script>
+  <script src="themes/default/js/axios.min.js"></script>
+  <!-- fontawesome.com -->
+  <script src="themes/default/js/all.min.js"></script>
+  <!-- http://www.jacklmoore.com/autosize/ -->
+  <script src="themes/default/js/autosize.min.js"></script>
+
+  <!-- d3.js -->
+  <script src="themes/default/js/d3.min.js"></script>
+  <!-- https://www.jasondavies.com/wordcloud/ -->
+  <script src="themes/default/js/d3.layout.cloud.js"></script>
+
+  <!-- highlight.min.js -->
+  <script src="themes/default/js/highlight.min.js"></script>
+  <script>hljs.highlightAll();</script>
+
+  <!-- m.js -->
+  <script src="themes/default/js/m.js"></script>
+  <!-- m.xhr.js -->
+  <script src="themes/default/js/m.xhr.js"></script>
+
+  <script>
+    window.addEventListener('load', function(){
+      var APP = new Vue({
+        el: "#app",
+        data: {
+          e: 0,
+          aio: null,
+          sig: null,
+          aug: null,
+          accounts: [],
+          recipients: [],
+          aioToSign: null
+        },
+        methods: {
+          minit: function() {
+            console.log("> minit");
+            this.mload();
+          },
+          mload: function() {
+            console.log("> mload");
+
+            var elements = [];
+
+            var aio = `{"author":"github::@leozeba","title":"The title!  #tag1 #tag2 #tag3","recipients":["app::public"],"reply":"","created":"2024-12-02 18:12:18","updated":"2024-12-02 18:12:18","elements":[{"type":"image","param":"c4cba1ec6edffe4f603c221c6708e2459238f8e7d7f5c0f3b5a810109426f844047510da7583f82f8c64c602125d88c7c251d906efaa1b9c79d71f8ff6a21558.png","data":{"name":""}}]}`;
+            aio = aio.replace(/\n/g, "\\n");
+
+            var aug = ``;
+            // aug = aug.replaceAll('""', '"');
+
+            var sig = ``;
+
+            this.aioToSign = aio;
+
+            var aio_ = JSON.parse(aio);
+            var aug_ = {};
+
+            try {
+              aug_ = JSON.parse(aug);
+            } catch(e) {
+              console.log(" > error:" + e.message)
+            }
+
+            this.aio = aio_;
+            this.sig = sig;
+            this.aug = aug;
+
+            aio_.elements.forEach((item, i) => {
+              if (aug_[item.id] !== undefined) {
+                var augment = aug_[item.id].augment;
+                item["augment"] = augment;
+              }
+
+              this.addElement(item.type, item.param, item.param, item);
+            });
+            aio_.recipients.forEach((item, i) => {
+              this.addRecipient(item);
+            });
+
+            // app::public
+            if (this.isRecipient("app::public")) {
+              // public.json
+              var parts = window.location.href.split("/");
+              var uuid = this.uuid('author');
+              var aioid = parts[parts.length - 1].replace(".htm", "");
+              var cid = parts[parts.length - 2];
+
+              var url = "https://memori.as/app::public/" + uuid + "/" + aioid + "/public.json";
+              if (aioid == "indexl") {
+                 url = "https://memori.as/app::public/" + cid + "/public.json";
+              }
+
+              fetch(url)
+              .then(function (response) {
+               // The API call was successful!
+                return response.json();
+              }).then(function (data) {
+                M.get("#www").setAttribute("href", data.www);
+                M.get("#ipfs").setAttribute("href", data.ipfs);
+                M.get("#mem").setAttribute("href", data.mem);
+
+                var cod = M.get("#cod");
+                var html = cod.innerHTML;
+                html = html.replace("--verify IPFS_URL", "--verify " + data.ipfs);
+                cod.innerHTML = html;
+
+                var url = M.get("#ipfs-url");
+                url.innerHTML = data.ipfs;
+
+              }).catch(function (err) {
+                // There was an error
+                console.warn('Something went wrong.', err);
+              }).finally(() => {
+              });
+            }
+          },
+          title: function(aio) {
+            return M.title(aio);
+          },
+          tags: function(aio) {
+            return M.tags(aio);
+          },
+          addElement: function(type, f, name, el) {
+            var controls = "";
+            var element = "";
+            var value = "";
+
+            f = "assets/" + f;
+
+            if (el === undefined) {
+              this.e = this.e + 1;
+            } else {
+              this.e = this.e + 1;
+              value = name;
+            }
+
+            if (type == "text") {
+              controls = '<div id="controls-' + this.e + '" class="field has-addons controls"><p class="control"><a class="button is-delete is-small" onclick="removeElement(' + "'" + type + "'" + ', ' + this.e + ')" onMouseOver="highlightElement(' + "'" + type + "'" + ', ' + this.e + ')" onMouseOut="removeHighlightElement(' + "'" + type + "'" + ', ' + this.e + ')"><span class="icon is-small"><i class="fas fa-times"></i></span></a></p></div>';
+              element = controls + '<textarea id="text-' + this.e + '" readonly class="element textarea" rows="1" placeholder="Type something! ex: @leozeba what are you doing?">' + value + '</textarea>';
+
+              if (el != undefined && el.augment != undefined) {
+                var tags = [];
+
+                var cloud = el.augment.cloud;
+                var words = Object.keys(cloud);
+                var counts = [];
+                var keys = el.augment.keys;
+
+                for (var i = 0; i < words.length; i++) {
+                  counts[i] = cloud[words[i]];
+                }
+
+                for (var i = 0; i < keys.length; i++) {
+                  var parts = keys[i].split("-");
+                  var count = parseInt(parts[0]);
+                  var word = parts[1];
+                  var tag = '<span class="tag augment-label is-medium is-rounded" style="border-bottom-left-radius: 10rem; border-top-left-radius: 10rem; padding-right: 0; font-weight: 600;">' + word + '</span><span class="tag is-medium" style="margin-right: 0.5rem; border-bottom-right-radius: 50%; border-top-right-radius: 50%;">' + count + '</span>';
+                  tags.push(tag);
+                }
+
+                element = element + '<div class="control-' + this.e + '"><div id="tags-' + this.e + '" class="tags has-addons">' + tags.join("") + '</div></div>';
+              }
+            }
+
+            if (type == "image") {
+              controls = '<div id="controls-' + this.e + '" class="field has-addons controls"><p class="control"><a class="button is-delete is-small" onclick="removeElement(' + "'" + type + "'" + ', ' + this.e + ')" onMouseOver="highlightElement(' + "'" + type + "'" + ', ' + this.e + ')" onMouseOut="removeHighlightElement(' + "'" + type + "'" + ', ' + this.e + ')"><span class="icon is-small"><i class="fas fa-times"></i></span></a></p></div>';
+              element = controls + '<img id="image-' + this.e + '" class="element image" src="' + f + '.aug"/>';
+
+              if (el != undefined && el.augment != undefined) {
+                var tags = [];
+
+                if (el.augment.labels) {
+                  var colors = el.augment.labels.ImageProperties.DominantColors;
+
+                  for (var i = 0; i < colors.length; i++) {
+                    var tag = '<span class="tag augment-label color is-medium is-rounded" style="background:' + colors[i].HexCode + ';">' + '<a href="search.html?q=' + colors[i].CSSColor + '">' + '#' + '</a>' + '</span>';
+                    tags.push(tag);
+                  }
+
+                  for (var i = 0; i < colors.length; i++) {
+                    var tag = '<span class="tag augment-label css is-medium is-rounded">' + '<a href="search.html?q=' + colors[i].CSSColor + '">#' + colors[i].CSSColor + '</a>' + '</span>';
+                    tags.push(tag);
+                  }
+
+                  var labels = el.augment.labels.Labels;
+
+                  for (var i = 0; i < labels.length; i++) {
+                    var tag = '<span class="tag augment-label is-medium is-rounded">' + labels[i].Name + '</span>';
+                    tags.push(tag);
+                  }
+                }
+
+                if (el.augment.text) {
+                  var text = el.augment.text.TextDetections;
+                  for (var i = 0; i < text.length; i++) {
+                    var tag = '<span class="tag augment-text is-medium is-rounded">' + text[i].DetectedText + '</span>';
+                    if (tags.indexOf(tag) == -1) {
+                      tags.push(tag);
+                    }
+                  }
+                }
+
+                if (el.augment.faces) {
+                  var faces = el.augment.faces.FaceDetails;
+                  for (var i = 0; i < faces.length; i++) {
+                    var details = faces[i];
+                    var keys = Object.keys(details);
+
+                    var tag = '<span class="tag augment-face is-medium" style="background: transparent !important; border: none !important; color: var(--color-0) !important;"><span class="icon is-small"><i class="fas fa-user"></i></span></span>';
+                    tags.push(tag);
+
+                    for (var j = 0; j < keys.length; j++) {
+                      var key = keys[j];
+
+                      // AgeRange
+                      if (key == "AgeRange") {
+                        var detail = details[key];
+                        var tag = '<span class="tag augment-face age is-medium is-rounded">' + detail.Low + '-' + detail.High + '</span>';
+                        tags.push(tag);
+                      }
+
+                      // Emotions
+                      if (key == "Emotions") {
+                        var array = details[key];
+
+                        for (var k = 0; k < array.length; k++) {
+                          var item = array[k];
+                          if (item.Type) {
+                            if (item.Confidence > 70.0) {
+                              var tag = '<span class="tag augment-face emotion is-medium is-rounded">' + item.Type + '</span>';
+                              tags.push(tag);
+                            }
+                          }
+                        }
+                      }
+
+                      // Gender
+                      if (key == "Gender") {
+                        var item = details[key];
+                        if (item.Value) {
+                          if (item.Confidence > 70.0) {
+                            var tag = '<span class="tag augment-face gender is-medium is-rounded">' + item.Value + '</span>';
+                            tags.push(tag);
+                          }
+                        }
+                      }
+
+                      // Landmarks
+                      if (key == "Landmarks") {
+                        var item = details[key];
+                        // console.log(item);
+                      }
+
+                      // Pose
+                      if (key == "Pose") {
+                        var item = details[key];
+                        // console.log(item);
+                      }
+
+                      // Quality
+                      if (key == "Quality") {
+                        var item = details[key];
+                        // console.log(item);
+                      }
+
+                      // Beard, Eyeglasses, EyesOpen, MouthOpen, Mustache, Smile, Sunglasses
+                      var value = details[key].Value;
+                      if (value == true) {
+                        var tag = '<span class="tag augment-face is-medium is-rounded">' + keys[j] + '</span>';
+                        tags.push(tag);
+                      }
+                    }
+                  }
+
+                  element = element + '<div id="tags-' + this.e + '" class="tags">' + tags.join("") + '</div>';
+                }
+              }
+            }
+
+            if (type == "video") {
+              controls = '<div id="controls-' + this.e + '" class="field has-addons controls" style="margin-bottom: 0.75rem !important;"><p class="control"><a class="button is-delete is-small" onclick="removeElement(' + "'" + type + "'" + ', ' + this.e + ')" onMouseOver="highlightElement(' + "'" + type + "'" + ', ' + this.e + ')" onMouseOut="removeHighlightElement(' + "'" + type + "'" + ', ' + this.e + ')"><span class="icon is-small"><i class="fas fa-times"></i></span></a></p></div>'
+              element = controls + '<video id="video-' + this.e + '" class="element video" controls><source src="' + f + '" type="video/mp4"></video>'
+            }
+
+            if (type == "file") {
+              controls = '<div id="controls-' + this.e + '" class="field has-addons controls"><p class="control"><a class="button is-delete is-small" onclick="removeElement(' + "'" + type + "'" + ', ' + this.e + ')" onMouseOver="highlightElement(' + "'" + type + "'" + ', ' + this.e + ')" onMouseOut="removeHighlightElement(' + "'" + type + "'" + ', ' + this.e + ')"><span class="icon is-small"><i class="fas fa-times"></i></span></a></p></div>';
+              element = controls + '<p id="file-' + this.e + '" class="element file" style="font-size: 1.85rem;" data-name="' + (el && el.data && el.data["name"] ? el.data["name"] : name) + '" data-content="' + f + '"><a href="' + f + '"><span class="icon is-large"><i class="fas fa-paperclip fa-lg"></span></i>' + (el && el.data && el.data["name"] ? el.data["name"] : name) + '</a></p>'
+            }
+
+            var elements = M.get("#elements");
+            elements.insertAdjacentHTML("beforeend", element);
+
+            // Wordcloud
+            if (counts !== undefined) {
+              var id = this.e;
+              var max = counts.reduce(function(a, b) {
+                return Math.max(a, b);
+              });
+              var containerWidth = +d3.select(".container").style("width").slice(0, -2);
+              var cssFill = getComputedStyle(M.get("body")).getPropertyValue("--color-0");
+              var layout = d3.layout.cloud()
+                .size([containerWidth, 500])
+                .words(words.map(function(d, index) {
+                  return {text: d, size: (cloud[d] / max) * 90, test: "haha"};
+                }))
+                .padding(5)
+                .rotate(function() { return ~~(Math.random() * 2) * 90; })
+                .font("Impact")
+                .fontSize(function(d) { return d.size; })
+                .on("end", function draw(words) {
+                  d3.select(".control-" + id)
+                  .append("svg")
+                  .attr("width", containerWidth)
+                  .attr("height", layout.size()[1])
+                  .append("g")
+                  .attr("transform", "translate(" + layout.size()[0] / 2 + "," + layout.size()[1] / 2 + ")")
+                  .selectAll("text")
+                  .data(words)
+                  .enter()
+                  .append("text")
+                  .style("font-size", function(d) { return d.size + "px"; })
+                  .style("font-family", "Impact")
+                  .style("fill", cssFill)
+                  .attr("text-anchor", "middle")
+                  .attr("transform", function(d) {
+                    return "translate(" + [d.x, d.y] + ")rotate(" + d.rotate + ")";
+                  })
+                  .text(function(d) { return d.text; });
+                });
+              layout.start();
+            }
+
+            autosize(document.querySelectorAll("textarea"));
+
+            // this.showControls("#controls-" + this.e);
+            this.focusOn("#" + type + "-" + this.e);
+          },
+          focusOn: function(element) {
+            M.get(element).focus();
+          },
+          rotate: function() {
+            var el = M.get(".element.image");
+            if (el !== undefined) {
+              var transform = el.style.transform;
+              console.log(transform);
+              if (transform.indexOf("-90") > 0) {
+                transform = "rotate(-180deg)";
+              } else if (transform.indexOf("-180") > 0) {
+                transform = "rotate(-270deg)";
+              } else if (transform.indexOf("-270") > 0) {
+                transform = "rotate(0deg)";
+              } else {
+                transform = "rotate(-90deg)";
+              }
+              el.style.transform = transform;
+            }
+          },
+          uuid: function(type) {
+            if (type == "author") {
+              return this.aio.author;
+            }
+            return M.storage("memori.as-m-uuid");
+          },
+          addRecipient: function(uuid) {
+            for (var i = 0; i < this.accounts.length; i++) {
+              var account = this.accounts[i];
+              if (account.auid == uuid) {
+                this.accounts.splice(i, 1);
+                this.recipients.push(account);
+                break;
+              }
+            }
+          },
+          isRecipient: function(account) {
+            var isRecipient = false;
+            for (var i = 0; i < this.aio.recipients.length; i++) {
+              var recipient = this.aio.recipients[i];
+              if (recipient == account) {
+                isRecipient = true;
+                break;
+              }
+            }
+            if (isRecipient == false) {
+              if (this.uuid() == account) {
+                isRecipient = true;
+              }
+            }
+            return isRecipient;
+          },
+          accountPicture: function(recipient) {
+            var a = "assets/recipient--" + recipient.replace("::", "--") + "-picture.png";
+            return a;
+          },
+          account: function(account) {
+            var r;
+            for (var i = 0; i < this.accounts.length; i++) {
+              var recipient = this.accounts[i];
+              if (recipient["m-auid"] == account) {
+                r = recipient;
+                break;
+              }
+            }
+            if (r == undefined) {
+              r = {};
+            }
+            return r;
+          },
+          picture: function() {
+            return M.storage("memori.as-m-picture");
+          },
+          showCode: function() {
+            M.get("#elements-container").style.display = "none";
+            M.get("#code-container").style.display = "block";
+
+            M.get("#show-code").style.display = "none";
+            M.get("#hide-code").style.display = "block";
+
+            var aio = JSON.stringify(JSON.parse(this.aioToSign), null, 4);
+            var sig = this.sig;
+            var aug = JSON.stringify(JSON.parse(this.aug), null, 4);
+
+            M.get("#aio").innerHTML = aio;
+            if (sig != "") {
+              M.get("#sig").innerHTML = sig;
+            }
+            if (aug != "") {
+              M.get("#aug").innerHTML = aug;
+            }
+          },
+          hideCode: function() {
+            M.get("#elements-container").style.display = "block";
+            M.get("#code-container").style.display = "none";
+
+            M.get("#show-code").style.display = "block";
+            M.get("#hide-code").style.display = "none";
+          },
+          replyProfileImageUrl: function(reply) {
+            var author = this.replyAuthor(reply);
+            return this.accountPicture(author);
+          },
+          replyAuthor: function(reply) {
+            var author = "";
+            var parts = reply.split("&");
+            for (var i = 0; i < parts.length; i++) {
+              var p = parts[i];
+              if (p.indexOf("author=") >= 0) {
+                author = p.replace("author=", "");
+                break;
+              }
+            }
+
+            return author;
+          },
+          replyUpdated: function(reply) {
+            var updated = "";
+            var parts = reply.split("&");
+            for (var i = 0; i < parts.length; i++) {
+              var p = parts[i];
+              if (p.indexOf("updated=") >= 0) {
+                updated = p.replace("updated=", "");
+                break;
+              }
+            }
+
+            return updated;
+          },
+          replyTitle: function(reply) {
+            var title = "";
+            var parts = reply.split("&");
+            for (var i = 0; i < parts.length; i++) {
+              var p = parts[i];
+              if (p.indexOf("title=") >= 0) {
+                title = p.replace("title=", "");
+                break;
+              }
+            }
+
+            return title.split(" #")[0];
+          },
+          replyAio: function(reply) {
+            var aio = "";
+            var parts = reply.split("&");
+            for (var i = 0; i < parts.length; i++) {
+              var p = parts[i];
+              if (p.indexOf("aio=") >= 0) {
+                aio = p.replace("aio=", "");
+                break;
+              }
+            }
+
+            return aio;
+          },
+          showContent: function() {
+            M.get("#the-content").style.display = "block";
+
+            M.get("#hide-content").style.display = "inline";
+            M.get("#show-content").style.display = "none";
+          },
+          hideContent: function() {
+            M.get("#the-content").style.display = "none";
+
+            M.get("#hide-content").style.display = "none";
+            M.get("#show-content").style.display = "inline";
+          }
+        },
+        mounted() {
+          this.minit();
+          var message = M.params("message");
+          if (message !== null) {
+            M.showMessage("#app", "is-success", message);
+          }
+        },
+        updated() {
+        }
+      });
+    });
+  </script>
+
+  <script>
+    M.theme();
+  </script>
+
+</body>
+</html>
