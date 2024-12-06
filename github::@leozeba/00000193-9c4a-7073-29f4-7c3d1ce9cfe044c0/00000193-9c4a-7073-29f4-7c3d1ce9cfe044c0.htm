@@ -1,0 +1,922 @@
+<!doctype html>
+<html class="no-js" lang="">
+
+<head>
+  <meta charset="utf-8">
+  <title>MEMORIAS | Your personal web3 database</title>
+  <meta name="description" content="Collect, manage, safeguard, augment & share data">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <meta name="google-signin-client_id" content="24613691161-3a990mj8uer0uero52cml7u34odspqe6.apps.googleusercontent.com">
+
+  <link rel="manifest" href="site.webmanifest">
+  <link rel="apple-touch-icon" href="/themes/default/icon.png">
+  <!-- Place favicon.ico in the root directory -->
+  <link rel="shortcut icon" href="/themes/default/favicon.ico" />
+
+  <!-- fontawesome.com -->
+  <!-- <link rel="stylesheet" href="/themes/default/css/all.min.css"> -->
+  <!-- bulma.io -->
+  <!-- <link rel="stylesheet" href="/themes/default/css/bulma.min.css"> -->
+  <!-- <link rel="stylesheet" href="/themes/default/css/bulma-pageloader.min.css"> -->
+
+  <!-- highlight.min.js -->
+  <!-- <link rel="stylesheet" href="/themes/default/css/styles/default.min.css"> -->
+
+  <!-- bundle.min.css -->
+  <link rel="stylesheet" href="/themes/default/css/bundle.min.css">
+  <!-- memori.as -->
+  <!-- <link rel="stylesheet" href="/themes/default/css/memori.as.css"> -->
+
+  <style>
+    #recipients .button:hover {
+      color: var(--color-4) !important;
+    }
+
+    .element.image, .element.video, .element.file {
+      border-color: transparent;
+      box-shadow: none;
+    }
+
+    .tags {
+      margin-top: 1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .tag.augment-label.color {
+      border: 1px solid var(--color-0) !important;
+    }
+    .tag.augment-label.css {
+      background: var(--color-4) !important;
+      border: 1px solid var(--color-0) !important;
+    }
+
+    .tag.augment-face.age {
+      border-color: var(--color-0) !important;
+      color: var(--color-0) !important;
+      background: var(--color-4) !important;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="app" style="display: hidden;" v-cloak>
+    <!-- pageloader -->
+    <div class="pageloader is-white">
+      <span class="title">Loading...</span>
+    </div>
+
+    <section class="hero is-fullheight">
+      <!-- navbar -->
+      <nav class="navbar header" role="navigation" aria-label="main navigation">
+        <div id="navbarBasicExample" class="navbar-menu">
+          <div class="navbar-start">
+              <a href="https://memori.as" target="_blank"><img src="/themes/default/img/memorias.png" style="height: 3.25rem;"/></a>
+          </div>
+          <div class="navbar-end">
+            <div id="actions">
+              <div class="container-01">
+                <div class="container-02">
+                  <div class="field has-addons">
+                    <a id="show-code" class="button button-1 is-medium is-circle" v-on:click="showCode()">
+                      <span class="icon">
+                        <!-- <i class="fa fa-share-alt"></i> -->
+                        <i class="fas fa-code"></i>
+                      </span>
+                    </a>
+                    <a id="hide-code" class="button is-medium is-circle is-borderless" v-on:click="hideCode()" style="display: none;">
+                      <span class="icon">
+                        <!-- <i class="fa fa-share-alt"></i> -->
+                        <i class="fa fa-chevron-left"></i>
+                      </span>
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      <!-- message -->
+      <article class="message is-danger" style="display: none;">
+        <div class="message-body" style="border-radius: 0;">
+          <p style="font-size: 1.25rem;"></p>
+        </div>
+      </article>
+
+      <!-- elements -->
+      <div id="elements-container" class="hero-body">
+        <div class="container">
+          <div class="box-title" v-if="aio != null">
+            <article class="media">
+              <div class="media-left is-hidden-mobile">
+                <div class="thumb is-circle" v-bind:style="'background-image: url(assets/author--' + aio.author.replace('::', '--') + '-picture.png); border: 1px solid var(--color-3);'">
+                </div>
+              </div>
+              <div class="media-content">
+                <div class="content">
+                  <!-- Title -->
+                  <p class="title">
+                    <strong>
+                      {{ title(aio) }}
+                    </strong>
+                  </p>
+                  <!-- Tags -->
+                  <div class="tags" v-if="tags(aio).length > 0">
+                    <span class="tag is-medium is-rounded" v-for="(tag, index) in tags(aio)" style="margin-right: 0.5rem;">#{{ tag }}</span>
+                    <span class="tag updated is-medium is-rounded">{{ aio.Updated }}{{ aio.updated }}</span>
+                  </div>
+                  <!-- Signature -->
+                  <div class="signature">
+                    <span class="icon-text tag sig is-medium is-rounded" v-if="aio != undefined && sig != ''">
+                      <span class="icon">
+                        <i class="fab fa-ethereum"></i>
+                      </span>
+                      <span v-bind:data-sig="sig">{{ sig.substring(0, 16) }}...{{ sig.substring(sig.length - 4) }}</span>
+                    </span>
+                  </div>
+                  <!-- Recipients -->
+                  <div class="recipients has-text-left">
+                    <div class="field has-addons">
+                      <div id="recipients" class="control" style="width: 100%; display: flex; background: transparent; padding: 0;">
+                        <!-- author -->
+                        <div class="author">
+                          <button class="button is-rounded is-borderless is-fullwidth" v-bind:data-uuid="uuid('author')" style="border: 1px solid var(--color-3); justify-content: flex-start; margin: 0 0.5rem 0 0; border-radius: 5rem; padding-right: 0.25rem; cursor: default;">
+                            <span class="has-badge-rounded has-badge-info">{{ uuid('author') }}</span>
+                          </button>
+                        </div>
+                        <!-- recipient (uuid) -->
+                        <div class="recipient" v-if="isRecipient('')">
+                          <a class="button is-fullwidth" v-bind:data-uuid="uuid()" v-bind:title="uuid()" style="justify-content: flex-start; margin: 0; border-radius: 5rem; padding-right: 0.25rem;  background: var(--color-1); border-color: var(--color-1); color: var(--color-4); cursor: default; padding-left: 0.5rem; padding-right: 0.5rem;">
+                            <span class="icon" style="width: 2rem; height: 2rem;" v-if="uuid('author') != uuid()">
+                              <img v-bind:src="picture()" class="is-circle">
+                            </span>
+                            <span class="has-badge-rounded has-badge-info" v-if="uuid('author') == uuid()">{{ uuid() }}</span>
+                          </a>
+                        </div>
+                        <!-- recipient (others) -->
+                        <div class="recipient" v-for="(recipient, index) in aio.recipients">
+                          <!-- "uuid() != recipient" -->
+                          <a v-bind:href="'account.html?auid=' + recipient" class="button is-fullwidth" v-bind:data-uuid="recipient" v-bind:title="recipient" style="justify-content: flex-start; margin: 0; border-radius: 5rem; padding-right: 0.25rem; padding-left: 0.5rem; padding-right: 0.5rem;" v-if="recipient != 'app::public'">
+                            <span class="icon" style="width: 2rem; height: 2rem;">
+                              <img v-bind:src="accountPicture(recipient)" class="is-circle">
+                            </span>
+                            <span class="has-badge-rounded has-badge-info" v-if="index < 0">{{ recipient }}</span>
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="media-right">
+                <!-- app::public -->
+                <p id="public" v-if="isRecipient('app::public')">
+                  <span class="tag is-small" style="border-radius: 2rem; background: var(--color-0); color: var(--color-4);">app::public</span>
+                  <span class="tag is-small" style="border-radius: 2rem; background: var(--color-4); color: var(--color-1);"><a id="www" v-bind:href="'https://memori.as/app::public/' + uuid() + '/www/' + aio['Id'] + '/' + aio['Id'] + '.htm'" target="_blank">WWW</a></span>
+                  <span class="tag is-small" style="border-radius: 2rem; background: var(--color-4); color: var(--color-1);"><a id="ipfs" v-bind:href="'https://ipfs.filebase.io/ipfs/' + aio['Ipfs']" target="_blank">IPFS</a></span>
+                  <span class="tag is-small" style="border-radius: 2rem; background: var(--color-4); color: var(--color-1);"><a id="mem" v-bind:href="'https://memori.as/app::public/' + uuid() + '/mem/' + aio['Mem'] + '.zip'" target="_blank">MEM</a></span>
+                </p>
+              </div>
+            </article>
+          </div>
+
+          <!-- content -->
+          <div id="content" class="column" style="min-height: 40rem;">
+            <div id="elements">
+            </div>
+          </div>
+
+          <hr>
+
+          <!-- box-reply -->
+          <div id="reply-aio" class="column" v-if="aio != null && aio.Reply != undefined && aio.Reply != ''" style="padding: 0.75rem;">
+            <div class="box box-reply">
+              <article class="media">
+                  <div class="media-left">
+                    <figure class="image is-96x96">
+                      <img v-if="uuid() == replyAuthor(aio.Reply)" v-bind:src="picture()" class="is-circle">
+                      <img v-else v-bind:src="replyProfileImageUrl(aio.Reply)" class="is-circle">
+                    </figure>
+                  </div>
+
+                  <div class="media-content">
+                    <div class="content">
+                      <p id="title" class="title" style="padding-left: 0; margin-top: 0; font-size: 2.5rem; margin-bottom: 0; font-family: 'Roboto Slab', serif;">
+                        <strong>
+                          <a v-bind:href="'viewer.html?aio=' + replyAio(aio.Reply) + '&author=' + replyAuthor(aio.Reply)" style="color:var(--color-0);">{{ replyTitle(aio.Reply) }}</a>
+                        </strong>
+                      </p>
+                    </div>
+                    <div class="tags">
+                      <span class="tag is-medium is-rounded is-black" v-if="uuid() == replyAuthor(aio.Reply)" style="cursor: default;">{{ replyAuthor(aio.Reply) }}</span>
+                      <span class="tag is-medium is-rounded is-black" v-else>{{ replyAuthor(aio.Reply) }}</span>
+
+                      <span class="tag is-medium is-rounded" v-for="(tag, index) in tags(aio)" style="margin-right: 0.5rem;">{{ '#' + tag }}</span>
+                      <span class="tag updated is-medium is-rounded">{{ replyUpdated(aio.Reply) }}</span>
+                    </div>
+                  </div>
+
+                  <div class="media-right">
+                  </div>
+                </article>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- code -->
+      <div id="code-container" class="hero-body" style="display: none;">
+        <div class="container">
+          <div class="box">
+            <pre style="background: var(--color-0) !important; color: var(--color-4) !important; padding: 0rem 1.5rem;">
+              <code id="cod" class="language-bash" style="background: var(--color-0) !important; color: var(--color-4) !important; font-size: 1rem;">
+#
+# Download MEMORIAS
+# git clone https://github.com/leozeba/MEMORIAS
+#
+go run MEMORIAS.go --verify IPFS_URL</code>
+            </pre>
+          </div>
+
+          <div class="box">
+            <h1 class="title">What is a MEMORIA?</h1>
+            <br/>
+            <p class="subtitle">
+              A MEMORIA is a JSON token file with the following attributes:
+              <table class="table is-fullwidth">
+                <thead>
+                  <tr>
+                    <th>Attribute</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><b>author</b></td>
+                    <td>string</td>
+                    <td>The creator of the MEMORIA</td>
+                  </tr>
+                  <tr>
+                    <td><b>title</b></td>
+                    <td>string</td>
+                    <td>The title of the content (Every word starting with # is a tag)</td>
+                  </tr>
+                  <tr>
+                    <td><b>recipients</b></td>
+                    <td>[]string</td>
+                    <td>A list containing the recipients of the content</td>
+                  </tr>
+                  <tr>
+                    <td><b>reply</b></td>
+                    <td>string</td>
+                    <td>The MEMORIA this one is a reply or linked to, if any.</td>
+                  </tr>
+                  <tr>
+                    <td><b>created</b></td>
+                    <td>string</td>
+                    <td>Timestamp of the creation.</td>
+                  </tr>
+                  <tr>
+                    <td><b>updated</b></td>
+                    <td>string</td>
+                    <td>Timestamp of the last update.</td>
+                  </tr>
+                  <tr>
+                    <td><b>elements</b></td>
+                    <td>[]json</td>
+                    <td>A collection of elements of the following types: <b>text, image, video, audio, file, brain</b></td>
+                  </tr>
+                </tbody>
+              </table>
+
+              Each element within the collection is characterized by a set of common attributes:
+
+              <table class="table is-fullwidth" style="margin-top: 1.5rem;">
+                <tbody>
+                  <tr>
+                    <td><b>type</b></td>
+                    <td>string</td>
+                    <td>The content-type of the element (text, image, video, audio, file, brain)</td>
+                  </tr>
+                  <tr>
+                    <td><b>data</b></td>
+                    <td>json</td>
+                    <td>Used for custom metadata depending of the content-type</td>
+                  </tr>
+                  <tr>
+                    <td><b>param</b></td>
+                    <td>string</td>
+                    <td>Hash (SHA3-512) of the content file alongside the content-type</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <ul style="list-style: disc; margin-left: 2rem;">
+                <li style="list-style: none; color: var(--color-1); margin-top: 1.5rem;">
+                  Example: "020aca4164b392d9...83dd4a271b889660.jpeg"<br/><br/>
+                  This structure ensures a standardized format for storing and exchanging diverse types of content within the JSON token file.
+                </li>
+              </ul>
+              <br>
+            </p>
+            <pre><code id="aio" class="language-json"></code></pre>
+          </div>
+          <div class="box">
+            <h1 class="title">How to verify this MEMORIA?</h1>
+            <br/>
+            <p class="subtitle">
+              To validate the content in this MEMORIA we need to download the MEM file (zip) containing
+              all assets referenced in the elements of the MEMORIA:
+
+              <ul style="list-style: disc; margin-left: 2rem;">
+                <li>Download the MEM file from <span id="ipfs-url"><a href="IPFS_URL">IPFS_URL</a><span>;</li>
+                <li>Unzip the file;</li>
+                <li>For element in the MEMORIA, we need to calculate the hash (SHA3-512) of the file in the <b>assets/</b> folder;</li>
+                <li style="list-style: none; color: var(--color-1);">
+                  The hash of each asset must match the prefix of the <b>param</b> value in the element.
+                  <br>
+                  This will guarantee that the assets in this MEMORIA are valid and have not been tampered.
+                </li>
+              </ul>
+            </p>
+          </div>
+
+          <div class="box" v-if="sig != ''">
+            <h1 class="title">How to verify the signature of this MEMORIA?</h1>
+            <br/>
+            <p class="subtitle">
+              To verify the signature of a signed MEMORIA we need to:
+              <ul style="list-style: disc; margin-left: 2rem;">
+                <li>Recover the signer's public key from the signature (.sig) and MEMORIA (.aio);</li>
+                <li>Recover the signer's address from the public key</li>
+                <li style="list-style: none; color: var(--color-1);">
+                  The recovered address must match the suffix of the "author" of MEMORIA.
+                </li>
+              </ul>
+            </p>
+            <pre><code id="sig" class="language-json"></code></pre>
+          </div>
+
+          <div class="box" v-if="aug != ''">
+            <h1 class="title">Augmented Inteligent Output</h1>
+            <br/>
+            <p class="subtitle">
+              These are the augmentations for this MEMORIA. It disclaims the models used for augmenting every element
+              as well as their results. It's a JSON file with the (.aug) extension. <a id="show-content" v-on:click="showContent()"><b>(show)</b><a id="hide-content" v-on:click="hideContent()" style="display: none;"><b>(hide)</b></a>
+            </p>
+            <pre id="the-content" style="display: none;"><code id="aug" class="language-json"></code></pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- navbar -->
+      <nav class="navbar footer" role="navigation" aria-label="main navigation">
+        <div id="navbarBasicExample" class="navbar-menu">
+          <div class="navbar-start">
+          </div>
+          <div class="navbar-end">
+          </div>
+        </div>
+      </nav>
+    </section>
+  </div>
+
+  <!-- vue.js -->
+  <!-- <script src="/themes/default/js/vue.js"></script> -->
+  <!-- <script src="/themes/default/js/axios.min.js"></script> -->
+  <!-- fontawesome.com -->
+  <!-- <script src="/themes/default/js/all.min.js"></script> -->
+  <!-- http://www.jacklmoore.com/autosize/ -->
+  <!-- <script src="/themes/default/js/autosize.min.js"></script> -->
+
+  <!-- d3.js -->
+  <!-- <script src="/themes/default/js/d3.min.js"></script> -->
+  <!-- https://www.jasondavies.com/wordcloud/ -->
+  <!-- <script src="/themes/default/js/d3.layout.cloud.js"></script> -->
+
+  <!-- highlight.min.js -->
+  <!-- <script src="/themes/default/js/highlight.min.js"></script> -->
+
+  <!-- bundle.min.js -->
+  <script src="/themes/default/js/bundle.min.js"></script>
+
+  <script>hljs.highlightAll();</script>
+
+  <!-- m.js -->
+  <!-- <script src="/themes/default/js/m.js"></script> -->
+  <!-- m.xhr.js -->
+  <!-- <script src="/themes/default/js/m.xhr.js"></script> -->
+
+  <script>
+    window.addEventListener('load', function(){
+      var APP = new Vue({
+        el: "#app",
+        data: {
+          e: 0,
+          aio: null,
+          sig: null,
+          aug: null,
+          accounts: [],
+          recipients: [],
+          aioToSign: null
+        },
+        methods: {
+          minit: function() {
+            console.log("> minit");
+            this.mload();
+          },
+          mload: function() {
+            console.log("> mload");
+
+            var elements = [];
+
+            var aio = `{"author":"github::@leozeba","title":"The title!  #tag1 #tag2 #tag3","recipients":["app::public"],"reply":"","created":"2024-12-06 14:05:59","updated":"2024-12-06 14:05:59","elements":[{"type":"image","param":"bac5385993c1b04562993a8afeef545aa81c9d7ea92809d3d2f98328022a53e93f5b236f4f4d3199a526ec45dc947757f9a0e0b9d1dbd82297e1997dd11d8d88.png","data":{"name":""}}]}`;
+            aio = aio.replace(/\n/g, "\\n");
+
+            var aug = `{"bac5385993c1b04562993a8afeef545aa81c9d7ea92809d3d2f98328022a53e93f5b236f4f4d3199a526ec45dc947757f9a0e0b9d1dbd82297e1997dd11d8d88.png.aug":{"augment":{"faces":{"FaceDetails":[{"AgeRange":{"High":67,"Low":61},"Beard":{"Confidence":77.65109,"Value":false},"BoundingBox":{"Height":0.058176126,"Left":0.14122966,"Top":0.51322114,"Width":0.07382528},"Confidence":99.00034,"Emotions":[{"Confidence":54.63867,"Type":"ANGRY"},{"Confidence":27.052952,"Type":"CALM"},{"Confidence":2.3635864,"Type":"SAD"},{"Confidence":2.2239685,"Type":"CONFUSED"},{"Confidence":0.95176697,"Type":"SURPRISED"},{"Confidence":0.88272095,"Type":"DISGUSTED"},{"Confidence":0.27542114,"Type":"HAPPY"},{"Confidence":0.070381165,"Type":"FEAR"}],"EyeDirection":{"Confidence":3.3523986e-7,"Pitch":1.770232,"Yaw":-3.8354096},"Eyeglasses":{"Confidence":98.89332,"Value":false},"EyesOpen":{"Confidence":99.85575,"Value":true},"FaceOccluded":{"Confidence":98.32611,"Value":false},"Gender":{"Confidence":99.94143,"Value":"Male"},"Landmarks":[{"Type":"eyeLeft","X":0.15352406,"Y":0.532359},{"Type":"eyeRight","X":0.1753508,"Y":0.5301483},{"Type":"mouthLeft","X":0.15585421,"Y":0.5551613},{"Type":"mouthRight","X":0.17388156,"Y":0.5534868},{"Type":"nose","X":0.1468611,"Y":0.54256094},{"Type":"leftEyeBrowLeft","X":0.15035187,"Y":0.52886254},{"Type":"leftEyeBrowRight","X":0.15096197,"Y":0.52544826},{"Type":"leftEyeBrowUp","X":0.14742224,"Y":0.52514255},{"Type":"rightEyeBrowLeft","X":0.16424702,"Y":0.5241452},{"Type":"rightEyeBrowRight","X":0.18968527,"Y":0.5251271},{"Type":"rightEyeBrowUp","X":0.1741303,"Y":0.5225763},{"Type":"leftEyeLeft","X":0.1515581,"Y":0.5328213},{"Type":"leftEyeRight","X":0.1577897,"Y":0.53228056},{"Type":"leftEyeUp","X":0.15228269,"Y":0.53124595},{"Type":"leftEyeDown","X":0.15336765,"Y":0.5333766},{"Type":"rightEyeLeft","X":0.17108323,"Y":0.53093666},{"Type":"rightEyeRight","X":0.1817651,"Y":0.52993745},{"Type":"rightEyeUp","X":0.17453666,"Y":0.5290539},{"Type":"rightEyeDown","X":0.17531289,"Y":0.53127545},{"Type":"noseLeft","X":0.1536635,"Y":0.5455912},{"Type":"noseRight","X":0.16244076,"Y":0.5448826},{"Type":"mouthUp","X":0.15671048,"Y":0.5503935},{"Type":"mouthDown","X":0.1595464,"Y":0.5571272},{"Type":"leftPupil","X":0.15352406,"Y":0.532359},{"Type":"rightPupil","X":0.1753508,"Y":0.5301483},{"Type":"upperJawlineLeft","X":0.16594708,"Y":0.5362719},{"Type":"midJawlineLeft","X":0.16850072,"Y":0.55835426},{"Type":"chinBottom","X":0.16827394,"Y":0.568402},{"Type":"midJawlineRight","X":0.21091737,"Y":0.55484843},{"Type":"upperJawlineRight","X":0.21676241,"Y":0.5316117}],"MouthOpen":{"Confidence":59.70421,"Value":true},"Mustache":{"Confidence":98.00531,"Value":false},"Pose":{"Pitch":15.910823,"Roll":-18.749401,"Yaw":-48.244976},"Quality":{"Brightness":28.879627,"Sharpness":26.177368},"Smile":{"Confidence":91.54906,"Value":false},"Sunglasses":{"Confidence":98.282776,"Value":false}},{"AgeRange":{"High":29,"Low":23},"Beard":{"Confidence":91.122505,"Value":false},"BoundingBox":{"Height":0.02538131,"Left":0.70170677,"Top":0.84229344,"Width":0.039473265},"Confidence":93.82463,"Emotions":[{"Confidence":44.20852,"Type":"CALM"},{"Confidence":30.381426,"Type":"SURPRISED"},{"Confidence":7.13501,"Type":"SAD"},{"Confidence":4.8858643,"Type":"FEAR"},{"Confidence":3.4764607,"Type":"CONFUSED"},{"Confidence":0.25691986,"Type":"DISGUSTED"},{"Confidence":0.036859512,"Type":"ANGRY"},{"Confidence":0.02207756,"Type":"HAPPY"}],"EyeDirection":{"Confidence":99.99101,"Pitch":23.785183,"Yaw":-9.352589},"Eyeglasses":{"Confidence":99.92791,"Value":false},"EyesOpen":{"Confidence":98.56181,"Value":true},"FaceOccluded":{"Confidence":99.8853,"Value":false},"Gender":{"Confidence":96.47433,"Value":"Female"},"Landmarks":[{"Type":"eyeLeft","X":0.7139428,"Y":0.8499665},{"Type":"eyeRight","X":0.72942525,"Y":0.85053885},{"Type":"mouthLeft","X":0.7138267,"Y":0.85878164},{"Type":"mouthRight","X":0.7267571,"Y":0.8592625},{"Type":"nose","X":0.721511,"Y":0.8543745},{"Type":"leftEyeBrowLeft","X":0.708129,"Y":0.84800225},{"Type":"leftEyeBrowRight","X":0.7176758,"Y":0.8473365},{"Type":"leftEyeBrowUp","X":0.7131307,"Y":0.8468199},{"Type":"rightEyeBrowLeft","X":0.72658217,"Y":0.8476683},{"Type":"rightEyeBrowRight","X":0.7350615,"Y":0.84898317},{"Type":"rightEyeBrowUp","X":0.7310436,"Y":0.84748244},{"Type":"leftEyeLeft","X":0.7110675,"Y":0.8499094},{"Type":"leftEyeRight","X":0.7169371,"Y":0.85018075},{"Type":"leftEyeUp","X":0.71396196,"Y":0.8495041},{"Type":"leftEyeDown","X":0.713906,"Y":0.85036814},{"Type":"rightEyeLeft","X":0.7262904,"Y":0.85052574},{"Type":"rightEyeRight","X":0.73205894,"Y":0.85068166},{"Type":"rightEyeUp","X":0.7295203,"Y":0.85007876},{"Type":"rightEyeDown","X":0.7292453,"Y":0.8509331},{"Type":"noseLeft","X":0.71797454,"Y":0.8555849},{"Type":"noseRight","X":0.7237269,"Y":0.8557962},{"Type":"mouthUp","X":0.7205867,"Y":0.85771215},{"Type":"mouthDown","X":0.72006196,"Y":0.8604353},{"Type":"leftPupil","X":0.7139428,"Y":0.8499665},{"Type":"rightPupil","X":0.72942525,"Y":0.85053885},{"Type":"upperJawlineLeft","X":0.7035648,"Y":0.8507321},{"Type":"midJawlineLeft","X":0.70540595,"Y":0.86012757},{"Type":"chinBottom","X":0.71908724,"Y":0.8651745},{"Type":"midJawlineRight","X":0.7328778,"Y":0.8611188},{"Type":"upperJawlineRight","X":0.7373892,"Y":0.85195756}],"MouthOpen":{"Confidence":90.87096,"Value":false},"Mustache":{"Confidence":99.589806,"Value":false},"Pose":{"Pitch":10.369326,"Roll":4.578397,"Yaw":-0.36315438},"Quality":{"Brightness":92.52007,"Sharpness":3.301857},"Smile":{"Confidence":99.96225,"Value":false},"Sunglasses":{"Confidence":99.83355,"Value":false}},{"AgeRange":{"High":26,"Low":20},"Beard":{"Confidence":58.8734,"Value":true},"BoundingBox":{"Height":0.02372366,"Left":0.5463803,"Top":0.1695903,"Width":0.03846517},"Confidence":97.27837,"Emotions":[{"Confidence":91.21094,"Type":"CALM"},{"Confidence":5.2948,"Type":"SAD"},{"Confidence":0.60907996,"Type":"CONFUSED"},{"Confidence":0.06592274,"Type":"SURPRISED"},{"Confidence":0.012461345,"Type":"HAPPY"},{"Confidence":0.005018711,"Type":"ANGRY"},{"Confidence":0.004991889,"Type":"FEAR"},{"Confidence":0.0028133392,"Type":"DISGUSTED"}],"EyeDirection":{"Confidence":0,"Pitch":-39.11484,"Yaw":11.795883},"Eyeglasses":{"Confidence":88.65907,"Value":false},"EyesOpen":{"Confidence":78.38604,"Value":true},"FaceOccluded":{"Confidence":97.744576,"Value":false},"Gender":{"Confidence":99.97167,"Value":"Male"},"Landmarks":[{"Type":"eyeLeft","X":0.5571189,"Y":0.17868736},{"Type":"eyeRight","X":0.57301,"Y":0.17786969},{"Type":"mouthLeft","X":0.55902857,"Y":0.18593283},{"Type":"mouthRight","X":0.5724642,"Y":0.18525265},{"Type":"nose","X":0.56641245,"Y":0.18436024},{"Type":"leftEyeBrowLeft","X":0.55061084,"Y":0.1765471},{"Type":"leftEyeBrowRight","X":0.56054276,"Y":0.17704506},{"Type":"leftEyeBrowUp","X":0.5557593,"Y":0.1764956},{"Type":"rightEyeBrowLeft","X":0.56949985,"Y":0.17659849},{"Type":"rightEyeBrowRight","X":0.5779939,"Y":0.17513189},{"Type":"rightEyeBrowUp","X":0.5738056,"Y":0.17558424},{"Type":"leftEyeLeft","X":0.55413973,"Y":0.17852308},{"Type":"leftEyeRight","X":0.56021774,"Y":0.17859259},{"Type":"leftEyeUp","X":0.5570855,"Y":0.17842464},{"Type":"leftEyeDown","X":0.5571816,"Y":0.17902578},{"Type":"rightEyeLeft","X":0.5697824,"Y":0.17809899},{"Type":"rightEyeRight","X":0.575619,"Y":0.17742303},{"Type":"rightEyeUp","X":0.5729986,"Y":0.17760968},{"Type":"rightEyeDown","X":0.5729091,"Y":0.17821842},{"Type":"noseLeft","X":0.5628716,"Y":0.18405636},{"Type":"noseRight","X":0.56869215,"Y":0.18376593},{"Type":"mouthUp","X":0.5660598,"Y":0.18585087},{"Type":"mouthDown","X":0.5661124,"Y":0.18780038},{"Type":"leftPupil","X":0.5571189,"Y":0.17868736},{"Type":"rightPupil","X":0.57301,"Y":0.17786969},{"Type":"upperJawlineLeft","X":0.5461197,"Y":0.17599857},{"Type":"midJawlineLeft","X":0.5505026,"Y":0.18427922},{"Type":"chinBottom","X":0.5660954,"Y":0.19072467},{"Type":"midJawlineRight","X":0.57809174,"Y":0.18286839},{"Type":"upperJawlineRight","X":0.5802101,"Y":0.17424753}],"MouthOpen":{"Confidence":97.489876,"Value":false},"Mustache":{"Confidence":76.54266,"Value":false},"Pose":{"Pitch":-37.553482,"Roll":-4.041399,"Yaw":2.729925},"Quality":{"Brightness":48.34872,"Sharpness":1.866628},"Smile":{"Confidence":99.66865,"Value":false},"Sunglasses":{"Confidence":88.31546,"Value":false}},{"AgeRange":{"High":11,"Low":5},"Beard":{"Confidence":93.55161,"Value":false},"BoundingBox":{"Height":0.02179318,"Left":0.21259145,"Top":0.24505253,"Width":0.028356323},"Confidence":99.92407,"Emotions":[{"Confidence":83.37891,"Type":"HAPPY"},{"Confidence":3.4118652,"Type":"CALM"},{"Confidence":0.2849102,"Type":"SURPRISED"},{"Confidence":0.016498566,"Type":"ANGRY"},{"Confidence":0.00091393787,"Type":"CONFUSED"},{"Confidence":0.0003039837,"Type":"SAD"},{"Confidence":0.00007748604,"Type":"DISGUSTED"},{"Confidence":0.00003874302,"Type":"FEAR"}],"EyeDirection":{"Confidence":0,"Pitch":-20.62789,"Yaw":13.800196},"Eyeglasses":{"Confidence":99.185974,"Value":false},"EyesOpen":{"Confidence":70.449936,"Value":true},"FaceOccluded":{"Confidence":95.70114,"Value":true},"Gender":{"Confidence":98.213455,"Value":"Female"},"Landmarks":[{"Type":"eyeLeft","X":0.23260571,"Y":0.25298578},{"Type":"eyeRight","X":0.23503785,"Y":0.25203356},{"Type":"mouthLeft","X":0.23551095,"Y":0.26081517},{"Type":"mouthRight","X":0.23730657,"Y":0.25991756},{"Type":"nose","X":0.24505717,"Y":0.2555178},{"Type":"leftEyeBrowLeft","X":0.22715864,"Y":0.2523504},{"Type":"leftEyeBrowRight","X":0.23557295,"Y":0.25046563},{"Type":"leftEyeBrowUp","X":0.23268738,"Y":0.25058404},{"Type":"rightEyeBrowLeft","X":0.23745033,"Y":0.2499833},{"Type":"rightEyeBrowRight","X":0.23230876,"Y":0.25070652},{"Type":"rightEyeBrowUp","X":0.23645808,"Y":0.24957044},{"Type":"leftEyeLeft","X":0.23068504,"Y":0.2533536},{"Type":"leftEyeRight","X":0.23300268,"Y":0.25294486},{"Type":"leftEyeUp","X":0.23287916,"Y":0.2526078},{"Type":"leftEyeDown","X":0.23264503,"Y":0.2533734},{"Type":"rightEyeLeft","X":0.2345507,"Y":0.25238296},{"Type":"rightEyeRight","X":0.234357,"Y":0.25203022},{"Type":"rightEyeUp","X":0.23552546,"Y":0.25165674},{"Type":"rightEyeDown","X":0.23524107,"Y":0.25239977},{"Type":"noseLeft","X":0.2384611,"Y":0.25705174},{"Type":"noseRight","X":0.23976938,"Y":0.2566678},{"Type":"mouthUp","X":0.24055114,"Y":0.2584924},{"Type":"mouthDown","X":0.23983952,"Y":0.2608064},{"Type":"leftPupil","X":0.23260571,"Y":0.25298578},{"Type":"rightPupil","X":0.23503785,"Y":0.25203356},{"Type":"upperJawlineLeft","X":0.21481237,"Y":0.25590545},{"Type":"midJawlineLeft","X":0.21949267,"Y":0.26289314},{"Type":"chinBottom","X":0.23662025,"Y":0.2647717},{"Type":"midJawlineRight","X":0.2261544,"Y":0.26112556},{"Type":"upperJawlineRight","X":0.22217128,"Y":0.25388637}],"MouthOpen":{"Confidence":68.20805,"Value":true},"Mustache":{"Confidence":99.23341,"Value":false},"Pose":{"Pitch":-39.61591,"Roll":-39.55151,"Yaw":83.80235},"Quality":{"Brightness":67.22905,"Sharpness":1.3998106},"Smile":{"Confidence":70.144,"Value":false},"Sunglasses":{"Confidence":98.01671,"Value":false}},{"AgeRange":{"High":33,"Low":25},"Beard":{"Confidence":86.15558,"Value":false},"BoundingBox":{"Height":0.018320067,"Left":0.34712696,"Top":0.20214054,"Width":0.029439291},"Confidence":99.66341,"Emotions":[{"Confidence":99.57854,"Type":"SAD"},{"Confidence":1.2302399,"Type":"CONFUSED"},{"Confidence":0.39749146,"Type":"ANGRY"},{"Confidence":0.055265427,"Type":"DISGUSTED"},{"Confidence":0.055027008,"Type":"CALM"},{"Confidence":0.013411045,"Type":"FEAR"},{"Confidence":0.0013262033,"Type":"SURPRISED"},{"Confidence":0.0002880891,"Type":"HAPPY"}],"EyeDirection":{"Confidence":57.081802,"Pitch":-27.80286,"Yaw":-1.9485157},"Eyeglasses":{"Confidence":99.99989,"Value":false},"EyesOpen":{"Confidence":99.988495,"Value":false},"FaceOccluded":{"Confidence":98.25642,"Value":false},"Gender":{"Confidence":99.98791,"Value":"Female"},"Landmarks":[{"Type":"eyeLeft","X":0.35285857,"Y":0.20819242},{"Type":"eyeRight","X":0.3658515,"Y":0.20924172},{"Type":"mouthLeft","X":0.35165864,"Y":0.21538472},{"Type":"mouthRight","X":0.36248612,"Y":0.21624848},{"Type":"nose","X":0.35772926,"Y":0.21223411},{"Type":"leftEyeBrowLeft","X":0.34875482,"Y":0.20623642},{"Type":"leftEyeBrowRight","X":0.35610226,"Y":0.20620948},{"Type":"leftEyeBrowUp","X":0.35253957,"Y":0.20557866},{"Type":"rightEyeBrowLeft","X":0.3635455,"Y":0.20680064},{"Type":"rightEyeBrowRight","X":0.37133315,"Y":0.20805405},{"Type":"rightEyeBrowUp","X":0.3675275,"Y":0.20677961},{"Type":"leftEyeLeft","X":0.35061204,"Y":0.2080068},{"Type":"leftEyeRight","X":0.3554213,"Y":0.20846209},{"Type":"leftEyeUp","X":0.35290968,"Y":0.20781775},{"Type":"leftEyeDown","X":0.3528273,"Y":0.20850481},{"Type":"rightEyeLeft","X":0.36326763,"Y":0.20909509},{"Type":"rightEyeRight","X":0.36821154,"Y":0.20942794},{"Type":"rightEyeUp","X":0.36595333,"Y":0.20886764},{"Type":"rightEyeDown","X":0.3656897,"Y":0.20954214},{"Type":"noseLeft","X":0.3552972,"Y":0.21296225},{"Type":"noseRight","X":0.36010352,"Y":0.21335027},{"Type":"mouthUp","X":0.3571305,"Y":0.21481231},{"Type":"mouthDown","X":0.35652336,"Y":0.2169821},{"Type":"leftPupil","X":0.35285857,"Y":0.20819242},{"Type":"rightPupil","X":0.3658515,"Y":0.20924172},{"Type":"upperJawlineLeft","X":0.34587985,"Y":0.20806757},{"Type":"midJawlineLeft","X":0.34600776,"Y":0.21586949},{"Type":"chinBottom","X":0.35555893,"Y":0.22075573},{"Type":"midJawlineRight","X":0.36901554,"Y":0.21774682},{"Type":"upperJawlineRight","X":0.37422812,"Y":0.21035697}],"MouthOpen":{"Confidence":88.1794,"Value":false},"Mustache":{"Confidence":98.59364,"Value":false},"Pose":{"Pitch":-1.4119166,"Roll":10.731979,"Yaw":-1.1081858},"Quality":{"Brightness":81.66555,"Sharpness":2.4851987},"Smile":{"Confidence":99.66476,"Value":false},"Sunglasses":{"Confidence":99.99973,"Value":false}},{"AgeRange":{"High":16,"Low":10},"Beard":{"Confidence":88.072235,"Value":false},"BoundingBox":{"Height":0.018377706,"Left":0.4153941,"Top":0.24128574,"Width":0.028561605},"Confidence":97.99259,"Emotions":[{"Confidence":48.282738,"Type":"FEAR"},{"Confidence":18.373535,"Type":"CONFUSED"},{"Confidence":12.475586,"Type":"ANGRY"},{"Confidence":8.636475,"Type":"SURPRISED"},{"Confidence":8.36792,"Type":"SAD"},{"Confidence":3.048706,"Type":"CALM"},{"Confidence":0.77552795,"Type":"DISGUSTED"},{"Confidence":0.027894974,"Type":"HAPPY"}],"EyeDirection":{"Confidence":0,"Pitch":-27.139671,"Yaw":23.047743},"Eyeglasses":{"Confidence":50.203716,"Value":false},"EyesOpen":{"Confidence":98.35464,"Value":true},"FaceOccluded":{"Confidence":73.627884,"Value":false},"Gender":{"Confidence":58.60802,"Value":"Male"},"Landmarks":[{"Type":"eyeLeft","X":0.43034095,"Y":0.24909414},{"Type":"eyeRight","X":0.43994442,"Y":0.24684583},{"Type":"mouthLeft","X":0.434673,"Y":0.25550926},{"Type":"mouthRight","X":0.44269887,"Y":0.25357175},{"Type":"nose","X":0.44250178,"Y":0.2514612},{"Type":"leftEyeBrowLeft","X":0.42376837,"Y":0.24854535},{"Type":"leftEyeBrowRight","X":0.43305445,"Y":0.24675629},{"Type":"leftEyeBrowUp","X":0.42901742,"Y":0.24706535},{"Type":"rightEyeBrowLeft","X":0.43865362,"Y":0.24553275},{"Type":"rightEyeBrowRight","X":0.44062328,"Y":0.2446937},{"Type":"rightEyeBrowUp","X":0.44027752,"Y":0.24457443},{"Type":"leftEyeLeft","X":0.4278342,"Y":0.24948981},{"Type":"leftEyeRight","X":0.4321906,"Y":0.24873897},{"Type":"leftEyeUp","X":0.430375,"Y":0.24878351},{"Type":"leftEyeDown","X":0.4304953,"Y":0.24939924},{"Type":"rightEyeLeft","X":0.43800154,"Y":0.24739206},{"Type":"rightEyeRight","X":0.4409291,"Y":0.24644955},{"Type":"rightEyeUp","X":0.44006184,"Y":0.2465422},{"Type":"rightEyeDown","X":0.44005153,"Y":0.24716842},{"Type":"noseLeft","X":0.43761516,"Y":0.25259572},{"Type":"noseRight","X":0.4412628,"Y":0.2517717},{"Type":"mouthUp","X":0.44076717,"Y":0.2537123},{"Type":"mouthDown","X":0.44104406,"Y":0.25566614},{"Type":"leftPupil","X":0.43034095,"Y":0.24909414},{"Type":"rightPupil","X":0.43994442,"Y":0.24684583},{"Type":"upperJawlineLeft","X":0.4157912,"Y":0.25069427},{"Type":"midJawlineLeft","X":0.42268506,"Y":0.25709146},{"Type":"chinBottom","X":0.44048426,"Y":0.2589453},{"Type":"midJawlineRight","X":0.4401217,"Y":0.2531904},{"Type":"upperJawlineRight","X":0.4370939,"Y":0.24592984}],"MouthOpen":{"Confidence":84.10067,"Value":false},"Mustache":{"Confidence":97.40673,"Value":false},"Pose":{"Pitch":-38.553146,"Roll":-36.443974,"Yaw":27.717117},"Quality":{"Brightness":53.211014,"Sharpness":1.866628},"Smile":{"Confidence":99.49187,"Value":false},"Sunglasses":{"Confidence":81.75093,"Value":false}},{"AgeRange":{"High":35,"Low":27},"Beard":{"Confidence":77.80303,"Value":true},"BoundingBox":{"Height":0.015386212,"Left":0.3902993,"Top":0.72831106,"Width":0.025700785},"Confidence":96.777275,"Emotions":[{"Confidence":99.02344,"Type":"HAPPY"},{"Confidence":0.20809174,"Type":"CALM"},{"Confidence":0.1553297,"Type":"SURPRISED"},{"Confidence":0.0025212765,"Type":"DISGUSTED"},{"Confidence":0.001385808,"Type":"CONFUSED"},{"Confidence":0.00028014183,"Type":"SAD"},{"Confidence":0.0002503395,"Type":"ANGRY"},{"Confidence":0.000113248825,"Type":"FEAR"}],"EyeDirection":{"Confidence":99.70563,"Pitch":11.525776,"Yaw":5.696175},"Eyeglasses":{"Confidence":99.229126,"Value":false},"EyesOpen":{"Confidence":52.899788,"Value":true},"FaceOccluded":{"Confidence":64.49829,"Value":true},"Gender":{"Confidence":91.99955,"Value":"Male"},"Landmarks":[{"Type":"eyeLeft","X":0.39383343,"Y":0.73338807},{"Type":"eyeRight","X":0.40165916,"Y":0.7336682},{"Type":"mouthLeft","X":0.39257523,"Y":0.7393689},{"Type":"mouthRight","X":0.39903945,"Y":0.7396279},{"Type":"nose","X":0.39230868,"Y":0.7360853},{"Type":"leftEyeBrowLeft","X":0.3928709,"Y":0.73217773},{"Type":"leftEyeBrowRight","X":0.39443552,"Y":0.73156697},{"Type":"leftEyeBrowUp","X":0.39301497,"Y":0.73128885},{"Type":"rightEyeBrowLeft","X":0.39903048,"Y":0.7317191},{"Type":"rightEyeBrowRight","X":0.40665847,"Y":0.73270655},{"Type":"rightEyeBrowUp","X":0.40226722,"Y":0.7316174},{"Type":"leftEyeLeft","X":0.39301166,"Y":0.7333905},{"Type":"leftEyeRight","X":0.39541316,"Y":0.73351514},{"Type":"leftEyeUp","X":0.39366868,"Y":0.73306406},{"Type":"leftEyeDown","X":0.39378715,"Y":0.7336413},{"Type":"rightEyeLeft","X":0.40015128,"Y":0.7336848},{"Type":"rightEyeRight","X":0.40369302,"Y":0.73380077},{"Type":"rightEyeUp","X":0.4015674,"Y":0.73335284},{"Type":"rightEyeDown","X":0.4015731,"Y":0.7339403},{"Type":"noseLeft","X":0.3935053,"Y":0.73697114},{"Type":"noseRight","X":0.39649296,"Y":0.73710567},{"Type":"mouthUp","X":0.3941791,"Y":0.7383573},{"Type":"mouthDown","X":0.3943094,"Y":0.74017525},{"Type":"leftPupil","X":0.39383343,"Y":0.73338807},{"Type":"rightPupil","X":0.40165916,"Y":0.7336682},{"Type":"upperJawlineLeft","X":0.39593586,"Y":0.7343063},{"Type":"midJawlineLeft","X":0.39490232,"Y":0.74034303},{"Type":"chinBottom","X":0.3954801,"Y":0.7433678},{"Type":"midJawlineRight","X":0.40930307,"Y":0.74099946},{"Type":"upperJawlineRight","X":0.41347235,"Y":0.73500544}],"MouthOpen":{"Confidence":68.250114,"Value":false},"Mustache":{"Confidence":79.89447,"Value":false},"Pose":{"Pitch":-14.098759,"Roll":9.972206,"Yaw":-32.81917},"Quality":{"Brightness":66.11876,"Sharpness":1.866628},"Smile":{"Confidence":87.50663,"Value":true},"Sunglasses":{"Confidence":99.47985,"Value":false}},{"AgeRange":{"High":40,"Low":32},"Beard":{"Confidence":72.48019,"Value":false},"BoundingBox":{"Height":0.012090313,"Left":0.107664086,"Top":0.28603655,"Width":0.02197459},"Confidence":72.623245,"Emotions":[{"Confidence":46.904297,"Type":"HAPPY"},{"Confidence":11.935222,"Type":"CALM"},{"Confidence":4.876709,"Type":"SAD"},{"Confidence":0.5420685,"Type":"ANGRY"},{"Confidence":0.41453043,"Type":"CONFUSED"},{"Confidence":0.28681755,"Type":"SURPRISED"},{"Confidence":0.09055138,"Type":"DISGUSTED"},{"Confidence":0.04954338,"Type":"FEAR"}],"EyeDirection":{"Confidence":99.74672,"Pitch":-12.155815,"Yaw":15.503359},"Eyeglasses":{"Confidence":99.8185,"Value":false},"EyesOpen":{"Confidence":59.474182,"Value":true},"FaceOccluded":{"Confidence":99.489914,"Value":true},"Gender":{"Confidence":62.245514,"Value":"Male"},"Landmarks":[{"Type":"eyeLeft","X":0.110824734,"Y":0.290659},{"Type":"eyeRight","X":0.119971044,"Y":0.29015929},{"Type":"mouthLeft","X":0.11286451,"Y":0.295396},{"Type":"mouthRight","X":0.120612815,"Y":0.29497552},{"Type":"nose","X":0.115814626,"Y":0.29410484},{"Type":"leftEyeBrowLeft","X":0.107351124,"Y":0.28934762},{"Type":"leftEyeBrowRight","X":0.11232288,"Y":0.28953242},{"Type":"leftEyeBrowUp","X":0.10968642,"Y":0.28921998},{"Type":"rightEyeBrowLeft","X":0.117512144,"Y":0.28923616},{"Type":"rightEyeBrowRight","X":0.12316495,"Y":0.28846437},{"Type":"rightEyeBrowUp","X":0.12014196,"Y":0.28862825},{"Type":"leftEyeLeft","X":0.10925208,"Y":0.29058316},{"Type":"leftEyeRight","X":0.11267358,"Y":0.29060158},{"Type":"leftEyeUp","X":0.110735655,"Y":0.2904782},{"Type":"leftEyeDown","X":0.11093896,"Y":0.29087362},{"Type":"rightEyeLeft","X":0.11818709,"Y":0.2902983},{"Type":"rightEyeRight","X":0.121633366,"Y":0.2899027},{"Type":"rightEyeUp","X":0.11990594,"Y":0.2899727},{"Type":"rightEyeDown","X":0.120000385,"Y":0.2903758},{"Type":"noseLeft","X":0.11443939,"Y":0.2940222},{"Type":"noseRight","X":0.11782128,"Y":0.29383332},{"Type":"mouthUp","X":0.11641216,"Y":0.29515752},{"Type":"mouthDown","X":0.116847485,"Y":0.2964523},{"Type":"leftPupil","X":0.110824734,"Y":0.290659},{"Type":"rightPupil","X":0.119971044,"Y":0.29015929},{"Type":"upperJawlineLeft","X":0.1061197,"Y":0.28930536},{"Type":"midJawlineLeft","X":0.109270886,"Y":0.2945569},{"Type":"chinBottom","X":0.117649056,"Y":0.29841754},{"Type":"midJawlineRight","X":0.1253401,"Y":0.2936558},{"Type":"upperJawlineRight","X":0.12589124,"Y":0.2881909}],"MouthOpen":{"Confidence":76.609406,"Value":false},"Mustache":{"Confidence":98.262436,"Value":false},"Pose":{"Pitch":-5.412651,"Roll":-7.9762826,"Yaw":-14.603801},"Quality":{"Brightness":65.75049,"Sharpness":1.0484902},"Smile":{"Confidence":76.25822,"Value":true},"Sunglasses":{"Confidence":99.57246,"Value":false}},{"AgeRange":{"High":28,"Low":22},"Beard":{"Confidence":67.564926,"Value":false},"BoundingBox":{"Height":0.008545694,"Left":0.30302155,"Top":0.29541963,"Width":0.0137797035},"Confidence":63.23594,"Emotions":[{"Confidence":49.719124,"Type":"CALM"},{"Confidence":7.7026367,"Type":"SAD"},{"Confidence":4.916382,"Type":"FEAR"},{"Confidence":2.5268555,"Type":"HAPPY"},{"Confidence":2.1896362,"Type":"ANGRY"},{"Confidence":1.5563965,"Type":"SURPRISED"},{"Confidence":0.5290985,"Type":"DISGUSTED"},{"Confidence":0.43265024,"Type":"CONFUSED"}],"EyeDirection":{"Confidence":99.87214,"Pitch":-3.8310766,"Yaw":4.193576},"Eyeglasses":{"Confidence":99.291,"Value":false},"EyesOpen":{"Confidence":79.54211,"Value":true},"FaceOccluded":{"Confidence":86.21786,"Value":false},"Gender":{"Confidence":67.50761,"Value":"Female"},"Landmarks":[{"Type":"eyeLeft","X":0.30994952,"Y":0.30221438},{"Type":"eyeRight","X":0.3087525,"Y":0.3014994},{"Type":"mouthLeft","X":0.31309173,"Y":0.30078956},{"Type":"mouthRight","X":0.3121089,"Y":0.3002001},{"Type":"nose","X":0.31142208,"Y":0.30179483},{"Type":"leftEyeBrowLeft","X":0.30982563,"Y":0.30250174},{"Type":"leftEyeBrowRight","X":0.30908746,"Y":0.30264914},{"Type":"leftEyeBrowUp","X":0.30925846,"Y":0.30280986},{"Type":"rightEyeBrowLeft","X":0.3083249,"Y":0.30221418},{"Type":"rightEyeBrowRight","X":0.30763462,"Y":0.3012157},{"Type":"rightEyeBrowUp","X":0.30774227,"Y":0.30193627},{"Type":"leftEyeLeft","X":0.31017855,"Y":0.3022607},{"Type":"leftEyeRight","X":0.3098085,"Y":0.30204052},{"Type":"leftEyeUp","X":0.30986565,"Y":0.3023128},{"Type":"leftEyeDown","X":0.31014016,"Y":0.30214718},{"Type":"rightEyeLeft","X":0.30907276,"Y":0.301607},{"Type":"rightEyeRight","X":0.30851945,"Y":0.30126867},{"Type":"rightEyeUp","X":0.30863577,"Y":0.3015839},{"Type":"rightEyeDown","X":0.30893642,"Y":0.3014264},{"Type":"noseLeft","X":0.3118188,"Y":0.30138054},{"Type":"noseRight","X":0.3113302,"Y":0.30109036},{"Type":"mouthUp","X":0.31232098,"Y":0.30098066},{"Type":"mouthDown","X":0.31320098,"Y":0.30048403},{"Type":"leftPupil","X":0.30994952,"Y":0.30221438},{"Type":"rightPupil","X":0.3087525,"Y":0.3014994},{"Type":"upperJawlineLeft","X":0.31066573,"Y":0.30153447},{"Type":"midJawlineLeft","X":0.3136067,"Y":0.30016822},{"Type":"chinBottom","X":0.31456566,"Y":0.2995394},{"Type":"midJawlineRight","X":0.31125066,"Y":0.29877877},{"Type":"upperJawlineRight","X":0.30781874,"Y":0.29987592}],"MouthOpen":{"Confidence":85.71359,"Value":false},"Mustache":{"Confidence":97.70445,"Value":false},"Pose":{"Pitch":5.241427,"Roll":-101.28971,"Yaw":-5.119056},"Quality":{"Brightness":71.83687,"Sharpness":0.58679575},"Smile":{"Confidence":93.29753,"Value":false},"Sunglasses":{"Confidence":99.06962,"Value":false}}],"OrientationCorrection":"","ResultMetadata":{}},"labels":{"ImageProperties":{"Background":{"DominantColors":[{"Blue":255,"CSSColor":"white","Green":255,"HexCode":"#ffffff","PixelPercent":76.69095,"Red":255,"SimplifiedColor":"white"},{"Blue":192,"CSSColor":"silver","Green":192,"HexCode":"#c0c0c0","PixelPercent":8.42872,"Red":192,"SimplifiedColor":"grey"},{"Blue":79,"CSSColor":"darkslategrey","Green":79,"HexCode":"#2f4f4f","PixelPercent":4.474506,"Red":47,"SimplifiedColor":"grey"},{"Blue":140,"CSSColor":"tan","Green":180,"HexCode":"#d2b48c","PixelPercent":3.433923,"Red":210,"SimplifiedColor":"brown"},{"Blue":128,"CSSColor":"gray","Green":128,"HexCode":"#808080","PixelPercent":2.9136317,"Red":128,"SimplifiedColor":"grey"},{"Blue":0,"CSSColor":"black","Green":0,"HexCode":"#000000","PixelPercent":1.9771072,"Red":0,"SimplifiedColor":"black"},{"Blue":107,"CSSColor":"darkkhaki","Green":183,"HexCode":"#bdb76b","PixelPercent":1.3527576,"Red":189,"SimplifiedColor":"yellow"},{"Blue":203,"CSSColor":"pink","Green":192,"HexCode":"#ffc0cb","PixelPercent":0.4162331,"Red":255,"SimplifiedColor":"pink"},{"Blue":169,"CSSColor":"darkgrey","Green":169,"HexCode":"#a9a9a9","PixelPercent":0.31217483,"Red":169,"SimplifiedColor":"grey"}],"Quality":{"Brightness":100,"Contrast":null,"Sharpness":86.73381}},"DominantColors":[{"Blue":255,"CSSColor":"white","Green":255,"HexCode":"#ffffff","PixelPercent":79.3722,"Red":255,"SimplifiedColor":"white"},{"Blue":0,"CSSColor":"black","Green":0,"HexCode":"#000000","PixelPercent":6.636771,"Red":0,"SimplifiedColor":"black"},{"Blue":105,"CSSColor":"dimgrey","Green":105,"HexCode":"#696969","PixelPercent":4.3049326,"Red":105,"SimplifiedColor":"grey"},{"Blue":169,"CSSColor":"darkgrey","Green":169,"HexCode":"#a9a9a9","PixelPercent":4.2152467,"Red":169,"SimplifiedColor":"grey"},{"Blue":135,"CSSColor":"burlywood","Green":184,"HexCode":"#deb887","PixelPercent":2.2421525,"Red":222,"SimplifiedColor":"brown"},{"Blue":128,"CSSColor":"gray","Green":128,"HexCode":"#808080","PixelPercent":2.0627804,"Red":128,"SimplifiedColor":"grey"},{"Blue":107,"CSSColor":"darkkhaki","Green":183,"HexCode":"#bdb76b","PixelPercent":1.1659193,"Red":189,"SimplifiedColor":"yellow"}],"Foreground":{"DominantColors":[{"Blue":255,"CSSColor":"white","Green":255,"HexCode":"#ffffff","PixelPercent":67.6259,"Red":255,"SimplifiedColor":"white"},{"Blue":0,"CSSColor":"black","Green":0,"HexCode":"#000000","PixelPercent":17.985611,"Red":0,"SimplifiedColor":"black"},{"Blue":128,"CSSColor":"gray","Green":128,"HexCode":"#808080","PixelPercent":3.5971222,"Red":128,"SimplifiedColor":"grey"},{"Blue":79,"CSSColor":"darkslategrey","Green":79,"HexCode":"#2f4f4f","PixelPercent":2.877698,"Red":47,"SimplifiedColor":"grey"},{"Blue":192,"CSSColor":"silver","Green":192,"HexCode":"#c0c0c0","PixelPercent":2.877698,"Red":192,"SimplifiedColor":"grey"},{"Blue":105,"CSSColor":"dimgrey","Green":105,"HexCode":"#696969","PixelPercent":2.1582735,"Red":105,"SimplifiedColor":"grey"},{"Blue":169,"CSSColor":"darkgrey","Green":169,"HexCode":"#a9a9a9","PixelPercent":1.438849,"Red":169,"SimplifiedColor":"grey"},{"Blue":220,"CSSColor":"gainsboro","Green":220,"HexCode":"#dcdcdc","PixelPercent":1.438849,"Red":220,"SimplifiedColor":"grey"}],"Quality":{"Brightness":100,"Contrast":null,"Sharpness":89.75446}},"Quality":{"Brightness":100,"Contrast":88.88518,"Sharpness":87.77892}},"LabelModelVersion":"3.0","Labels":[{"Aliases":[],"Categories":[{"Name":"Hobbies and Interests"}],"Confidence":99.99652,"Instances":[],"Name":"Art","Parents":[]},{"Aliases":[],"Categories":[{"Name":"Hobbies and Interests"}],"Confidence":99.99652,"Instances":[],"Name":"Collage","Parents":[{"Name":"Art"}]},{"Aliases":[],"Categories":[{"Name":"Text and Documents"}],"Confidence":99.74752,"Instances":[],"Name":"Page","Parents":[{"Name":"Text"}]},{"Aliases":[],"Categories":[{"Name":"Text and Documents"}],"Confidence":99.74752,"Instances":[],"Name":"Text","Parents":[]},{"Aliases":[],"Categories":[{"Name":"Person Description"}],"Confidence":98.89844,"Instances":[{"BoundingBox":{"Height":0.106275894,"Left":0.111782074,"Top":0.50524044,"Width":0.248656},"Confidence":98.89844,"DominantColors":[]}],"Name":"Adult","Parents":[{"Name":"Person"}]},{"Aliases":[],"Categories":[{"Name":"Person Description"}],"Confidence":98.89844,"Instances":[{"BoundingBox":{"Height":0.106275894,"Left":0.111782074,"Top":0.50524044,"Width":0.248656},"Confidence":98.89844,"DominantColors":[]},{"BoundingBox":{"Height":0.11110979,"Left":0.3505239,"Top":0.2320744,"Width":0.16212921},"Confidence":96.89141,"DominantColors":[]}],"Name":"Male","Parents":[{"Name":"Person"}]},{"Aliases":[],"Categories":[{"Name":"Person Description"}],"Confidence":98.89844,"Instances":[{"BoundingBox":{"Height":0.106275894,"Left":0.111782074,"Top":0.50524044,"Width":0.248656},"Confidence":98.89844,"DominantColors":[]}],"Name":"Man","Parents":[{"Name":"Adult"},{"Name":"Male"},{"Name":"Person"}]},{"Aliases":[{"Name":"Human"}],"Categories":[{"Name":"Person Description"}],"Confidence":98.89844,"Instances":[{"BoundingBox":{"Height":0.106275894,"Left":0.111782074,"Top":0.50524044,"Width":0.248656},"Confidence":98.89844,"DominantColors":[]},{"BoundingBox":{"Height":0.19054502,"Left":0.50709915,"Top":0.15300146,"Width":0.14835826},"Confidence":98.807076,"DominantColors":[]},{"BoundingBox":{"Height":0.06806562,"Left":0.34262407,"Top":0.7250674,"Width":0.09114962},"Confidence":98.02743,"DominantColors":[]},{"BoundingBox":{"Height":0.040937454,"Left":0.8265852,"Top":0.5396555,"Width":0.07300852},"Confidence":97.75514,"DominantColors":[]},{"BoundingBox":{"Height":0.11110979,"Left":0.3505239,"Top":0.2320744,"Width":0.16212921},"Confidence":96.89141,"DominantColors":[]},{"BoundingBox":{"Height":0.042834893,"Left":0.22109522,"Top":0.8308333,"Width":0.08192975},"Confidence":96.72715,"DominantColors":[]},{"BoundingBox":{"Height":0.108774014,"Left":0.13315466,"Top":0.23507364,"Width":0.15593992},"Confidence":96.65725,"DominantColors":[]},{"BoundingBox":{"Height":0.060944118,"Left":0.6655364,"Top":0.8390484,"Width":0.10488729},"Confidence":96.40144,"DominantColors":[]},{"BoundingBox":{"Height":0.14823365,"Left":0.32702604,"Top":0.19319451,"Width":0.08448385},"Confidence":94.760864,"DominantColors":[]},{"BoundingBox":{"Height":0.06835557,"Left":0.42722952,"Top":0.7232922,"Width":0.051762544},"Confidence":91.56474,"DominantColors":[]},{"BoundingBox":{"Height":0.13961524,"Left":0.28125682,"Top":0.20139487,"Width":0.09039724},"Confidence":84.43205,"DominantColors":[]},{"BoundingBox":{"Height":0.05164269,"Left":0.030426782,"Top":0.29101214,"Width":0.09697895},"Confidence":79.83809,"DominantColors":[]}],"Name":"Person","Parents":[]},{"Aliases":[],"Categories":[{"Name":"Person Description"}],"Confidence":96.89141,"Instances":[{"BoundingBox":{"Height":0.11110979,"Left":0.3505239,"Top":0.2320744,"Width":0.16212921},"Confidence":96.89141,"DominantColors":[]}],"Name":"Boy","Parents":[{"Name":"Male"},{"Name":"Person"}]},{"Aliases":[{"Name":"Kid"}],"Categories":[{"Name":"Person Description"}],"Confidence":96.89141,"Instances":[{"BoundingBox":{"Height":0.11110979,"Left":0.3505239,"Top":0.2320744,"Width":0.16212921},"Confidence":96.89141,"DominantColors":[]}],"Name":"Child","Parents":[{"Name":"Person"}]},{"Aliases":[{"Name":"Apparel"}],"Categories":[{"Name":"Apparel and Accessories"}],"Confidence":95.62873,"Instances":[],"Name":"Clothing","Parents":[]},{"Aliases":[{"Name":"Denim"}],"Categories":[{"Name":"Apparel and Accessories"}],"Confidence":95.62873,"Instances":[{"BoundingBox":{"Height":0.07968425,"Left":0.537032,"Top":0.26226428,"Width":0.104534},"Confidence":95.62873,"DominantColors":[]},{"BoundingBox":{"Height":0.041738063,"Left":0.41523993,"Top":0.3006628,"Width":0.06666443},"Confidence":87.789345,"DominantColors":[]}],"Name":"Jeans","Parents":[{"Name":"Clothing"},{"Name":"Pants"}]},{"Aliases":[],"Categories":[{"Name":"Apparel and Accessories"}],"Confidence":95.62873,"Instances":[],"Name":"Pants","Parents":[{"Name":"Clothing"}]},{"Aliases":[],"Categories":[{"Name":"Person Description"}],"Confidence":94.324715,"Instances":[],"Name":"People","Parents":[{"Name":"Person"}]},{"Aliases":[],"Categories":[{"Name":"Person Description"}],"Confidence":93.91487,"Instances":[],"Name":"Face","Parents":[{"Name":"Head"},{"Name":"Person"}]},{"Aliases":[],"Categories":[{"Name":"Person Description"}],"Confidence":93.91487,"Instances":[],"Name":"Head","Parents":[{"Name":"Person"}]}],"OrientationCorrection":"","ResultMetadata":{}},"models":{"faces":"Amazon Rekognition (Detect Faces 3.0)","labels":"Amazon Rekognition (Detect Labels 3.0)","text":"Amazon Rekognition (Detect Text 3.0)"},"text":{"TextDetections":[{"Confidence":99.10515,"DetectedText":"Late Edition","Geometry":{"BoundingBox":{"Height":0.0064225863,"Left":0.861328,"Top":0.045946196,"Width":0.07519531},"Polygon":[{"X":0.861328,"Y":0.045946196},{"X":0.9365233,"Y":0.045946196},{"X":0.9365233,"Y":0.052368782},{"X":0.861328,"Y":0.052368782}]},"Id":0,"ParentId":null,"Type":"LINE"},{"Confidence":98.623535,"DetectedText":"All the News","Geometry":{"BoundingBox":{"Height":0.0069166315,"Left":0.05859375,"Top":0.054839008,"Width":0.07910156},"Polygon":[{"X":0.05859375,"Y":0.054839008},{"X":0.13769531,"Y":0.054839008},{"X":0.13769531,"Y":0.06175564},{"X":0.05859375,"Y":0.06175564}]},"Id":1,"ParentId":null,"Type":"LINE"},{"Confidence":87.72926,"DetectedText":"Thats Fit to Print","Geometry":{"BoundingBox":{"Height":0.0069166315,"Left":0.047851562,"Top":0.06323777,"Width":0.10449219},"Polygon":[{"X":0.047851562,"Y":0.06323777},{"X":0.15234375,"Y":0.06323777},{"X":0.15234375,"Y":0.070154406},{"X":0.047851562,"Y":0.070154406}]},"Id":2,"ParentId":null,"Type":"LINE"},{"Confidence":99.96518,"DetectedText":"The New York Times","Geometry":{"BoundingBox":{"Height":0.045792345,"Left":0.1875,"Top":0.043135773,"Width":0.624411},"Polygon":[{"X":0.1875,"Y":0.043135773},{"X":0.811911,"Y":0.043135773},{"X":0.811911,"Y":0.08892812},{"X":0.1875,"Y":0.08892812}]},"Id":3,"ParentId":null,"Type":"LINE"},{"Confidence":75.08976,"DetectedText":"Today mostly sunny low humidity","Geometry":{"BoundingBox":{"Height":0.0067250347,"Left":0.8241032,"Top":0.05353768,"Width":0.1486617},"Polygon":[{"X":0.8241032,"Y":0.054345485},{"X":0.97263914,"Y":0.05353768},{"X":0.9727649,"Y":0.059454914},{"X":0.82422894,"Y":0.060262714}]},"Id":4,"ParentId":null,"Type":"LINE"},{"Confidence":79.39956,"DetectedText":"high to Tonight clear skies low 04","Geometry":{"BoundingBox":{"Height":0.0059285415,"Left":0.8232422,"Top":0.059285413,"Width":0.1484375},"Polygon":[{"X":0.8232422,"Y":0.059285413},{"X":0.9716797,"Y":0.059285413},{"X":0.9716797,"Y":0.065213956},{"X":0.8232422,"Y":0.065213956}]},"Id":5,"ParentId":null,"Type":"LINE"},{"Confidence":80.62965,"DetectedText":"Tomorrow an abundance of sun","Geometry":{"BoundingBox":{"Height":0.007416595,"Left":0.8229834,"Top":0.06447099,"Width":0.14973348},"Polygon":[{"X":0.8229834,"Y":0.06491465},{"X":0.9726361,"Y":0.06447099},{"X":0.97271687,"Y":0.07144392},{"X":0.82306415,"Y":0.07188758}]},"Id":6,"ParentId":null,"Type":"LINE"},{"Confidence":78.01937,"DetectedText":"humidity remaining byw. high -","Geometry":{"BoundingBox":{"Height":0.007498357,"Left":0.8231259,"Top":0.06997875,"Width":0.1496645},"Polygon":[{"X":0.8232812,"Y":0.06997875},{"X":0.9727904,"Y":0.070879556},{"X":0.9726351,"Y":0.077477105},{"X":0.8231259,"Y":0.0765763}]},"Id":7,"ParentId":null,"Type":"LINE"},{"Confidence":83.583984,"DetectedText":"Weather map and details Page a","Geometry":{"BoundingBox":{"Height":0.0054344963,"Left":0.82421875,"Top":0.07707103,"Width":0.14746094},"Polygon":[{"X":0.82421875,"Y":0.07707103},{"X":0.9716797,"Y":0.07707103},{"X":0.9716797,"Y":0.08250553},{"X":0.82421875,"Y":0.08250553}]},"Id":8,"ParentId":null,"Type":"LINE"},{"Confidence":90.48315,"DetectedText":"VOL.CLXII ... No. 56238","Geometry":{"BoundingBox":{"Height":0.008917823,"Left":0.024248524,"Top":0.09233548,"Width":0.15072958},"Polygon":[{"X":0.024461243,"Y":0.09233548},{"X":0.1749781,"Y":0.093375735},{"X":0.1747654,"Y":0.1012533},{"X":0.024248524,"Y":0.100213036}]},"Id":9,"ParentId":null,"Type":"LINE"},{"Confidence":98.19324,"DetectedText":"$2.50","Geometry":{"BoundingBox":{"Height":0.0054344963,"Left":0.9404297,"Top":0.09337453,"Width":0.032226562},"Polygon":[{"X":0.9404297,"Y":0.09337453},{"X":0.97265625,"Y":0.09337453},{"X":0.97265625,"Y":0.09880902},{"X":0.9404297,"Y":0.09880902}]},"Id":10,"ParentId":null,"Type":"LINE"},{"Confidence":80.72766,"DetectedText":"©2013 The New York Times","Geometry":{"BoundingBox":{"Height":0.0039523607,"Left":0.21777344,"Top":0.095350705,"Width":0.095703125},"Polygon":[{"X":0.21777344,"Y":0.095350705},{"X":0.31347656,"Y":0.095350705},{"X":0.31347656,"Y":0.09930307},{"X":0.21777344,"Y":0.09930307}]},"Id":11,"ParentId":null,"Type":"LINE"},{"Confidence":88.34892,"DetectedText":"NEW YORK. SATURDAY AUGUST 242013","Geometry":{"BoundingBox":{"Height":0.0067934804,"Left":0.3720605,"Top":0.09326998,"Width":0.25490278},"Polygon":[{"X":0.37207124,"Y":0.09326998},{"X":0.6269633,"Y":0.09337452},{"X":0.6269526,"Y":0.100063466},{"X":0.3720605,"Y":0.099958934}]},"Id":12,"ParentId":null,"Type":"LINE"},{"Confidence":19.607296,"DetectedText":"was -","Geometry":{"BoundingBox":{"Height":0.010626653,"Left":0.21412893,"Top":0.2963587,"Width":0.038505554},"Polygon":[{"X":0.21412893,"Y":0.30138576},{"X":0.24952738,"Y":0.2963587},{"X":0.2526345,"Y":0.3019583},{"X":0.21723603,"Y":0.30698535}]},"Id":13,"ParentId":null,"Type":"LINE"},{"Confidence":17.657381,"DetectedText":"OF","Geometry":{"BoundingBox":{"Height":0.012311243,"Left":0.2270902,"Top":0.31087312,"Width":0.036835227},"Polygon":[{"X":0.2270902,"Y":0.31632233},{"X":0.25940412,"Y":0.31087312},{"X":0.26392543,"Y":0.31773517},{"X":0.2316115,"Y":0.32318437}]},"Id":14,"ParentId":null,"Type":"LINE"},{"Confidence":99.38223,"DetectedText":"Late","Geometry":{"BoundingBox":{"Height":0.0054344963,"Left":0.8613281,"Top":0.04644024,"Width":0.02734375},"Polygon":[{"X":0.8613281,"Y":0.04644024},{"X":0.8886719,"Y":0.04644024},{"X":0.8886719,"Y":0.05187474},{"X":0.8613281,"Y":0.05187474}]},"Id":15,"ParentId":0,"Type":"WORD"},{"Confidence":98.82807,"DetectedText":"Edition","Geometry":{"BoundingBox":{"Height":0.0064225863,"Left":0.89160156,"Top":0.045946196,"Width":0.044921875},"Polygon":[{"X":0.89160156,"Y":0.045946196},{"X":0.93652344,"Y":0.045946196},{"X":0.93652344,"Y":0.052368782},{"X":0.89160156,"Y":0.052368782}]},"Id":16,"ParentId":0,"Type":"WORD"},{"Confidence":98.6069,"DetectedText":"All","Geometry":{"BoundingBox":{"Height":0.0059285415,"Left":0.05859375,"Top":0.05533305,"Width":0.022460938},"Polygon":[{"X":0.05859375,"Y":0.05533305},{"X":0.08105469,"Y":0.05533305},{"X":0.08105469,"Y":0.061261594},{"X":0.05859375,"Y":0.061261594}]},"Id":17,"ParentId":1,"Type":"WORD"},{"Confidence":98.73901,"DetectedText":"the","Geometry":{"BoundingBox":{"Height":0.0064225863,"Left":0.083984375,"Top":0.054839008,"Width":0.017578125},"Polygon":[{"X":0.083984375,"Y":0.054839008},{"X":0.1015625,"Y":0.054839008},{"X":0.1015625,"Y":0.061261594},{"X":0.083984375,"Y":0.061261594}]},"Id":18,"ParentId":1,"Type":"WORD"},{"Confidence":98.52469,"DetectedText":"News","Geometry":{"BoundingBox":{"Height":0.0069166315,"Left":0.10449219,"Top":0.054839008,"Width":0.033203125},"Polygon":[{"X":0.10449219,"Y":0.054839008},{"X":0.13769531,"Y":0.054839008},{"X":0.13769531,"Y":0.06175564},{"X":0.10449219,"Y":0.06175564}]},"Id":19,"ParentId":1,"Type":"WORD"},{"Confidence":99.30764,"DetectedText":"Thats","Geometry":{"BoundingBox":{"Height":0.0054344963,"Left":0.047851562,"Top":0.06373182,"Width":0.034179688},"Polygon":[{"X":0.047851562,"Y":0.06373182},{"X":0.08203125,"Y":0.06373182},{"X":0.08203125,"Y":0.06916632},{"X":0.047851562,"Y":0.06916632}]},"Id":20,"ParentId":2,"Type":"WORD"},{"Confidence":74.76746,"DetectedText":"Fit","Geometry":{"BoundingBox":{"Height":0.0054344963,"Left":0.0859375,"Top":0.06373182,"Width":0.0146484375},"Polygon":[{"X":0.0859375,"Y":0.06373182},{"X":0.10058594,"Y":0.06373182},{"X":0.10058594,"Y":0.06916632},{"X":0.0859375,"Y":0.06916632}]},"Id":21,"ParentId":2,"Type":"WORD"},{"Confidence":97.76968,"DetectedText":"to","Geometry":{"BoundingBox":{"Height":0.0054344963,"Left":0.10449219,"Top":0.06422587,"Width":0.0107421875},"Polygon":[{"X":0.10449219,"Y":0.06422587},{"X":0.115234375,"Y":0.06422587},{"X":0.115234375,"Y":0.06966036},{"X":0.10449219,"Y":0.06966036}]},"Id":22,"ParentId":2,"Type":"WORD"},{"Confidence":79.07227,"DetectedText":"Print","Geometry":{"BoundingBox":{"Height":0.0069166315,"Left":0.11816406,"Top":0.06323777,"Width":0.034179688},"Polygon":[{"X":0.11816406,"Y":0.06323777},{"X":0.15234375,"Y":0.06323777},{"X":0.15234375,"Y":0.070154406},{"X":0.11816406,"Y":0.070154406}]},"Id":23,"ParentId":2,"Type":"WORD"},{"Confidence":100,"DetectedText":"The","Geometry":{"BoundingBox":{"Height":0.039029565,"Left":0.1875,"Top":0.04347597,"Width":0.11621094},"Polygon":[{"X":0.1875,"Y":0.04347597},{"X":0.30371094,"Y":0.04347597},{"X":0.30371094,"Y":0.08250553},{"X":0.1875,"Y":0.08250553}]},"Id":24,"ParentId":3,"Type":"WORD"},{"Confidence":100,"DetectedText":"New","Geometry":{"BoundingBox":{"Height":0.035571247,"Left":0.31249997,"Top":0.04545215,"Width":0.13378903},"Polygon":[{"X":0.31249997,"Y":0.04545215},{"X":0.446289,"Y":0.04545215},{"X":0.446289,"Y":0.081023395},{"X":0.31249997,"Y":0.081023395}]},"Id":25,"ParentId":3,"Type":"WORD"},{"Confidence":99.898056,"DetectedText":"York","Geometry":{"BoundingBox":{"Height":0.043970015,"Left":0.4560547,"Top":0.044958103,"Width":0.15625},"Polygon":[{"X":0.4560547,"Y":0.044958103},{"X":0.6123047,"Y":0.044958103},{"X":0.6123047,"Y":0.08892812},{"X":0.4560547,"Y":0.08892812}]},"Id":26,"ParentId":3,"Type":"WORD"},{"Confidence":99.96266,"DetectedText":"Times","Geometry":{"BoundingBox":{"Height":0.03666342,"Left":0.6213692,"Top":0.04313578,"Width":0.1905419},"Polygon":[{"X":0.62239397,"Y":0.04313578},{"X":0.81191105,"Y":0.044545744},{"X":0.81088626,"Y":0.079799205},{"X":0.6213692,"Y":0.078389235}]},"Id":27,"ParentId":3,"Type":"WORD"},{"Confidence":56.57352,"DetectedText":"Today","Geometry":{"BoundingBox":{"Height":0.0054344963,"Left":0.82421875,"Top":0.054344963,"Width":0.02734375},"Polygon":[{"X":0.82421875,"Y":0.054344963},{"X":0.8515625,"Y":0.054344963},{"X":0.8515625,"Y":0.059779458},{"X":0.82421875,"Y":0.059779458}]},"Id":28,"ParentId":4,"Type":"WORD"},{"Confidence":88.59022,"DetectedText":"mostly","Geometry":{"BoundingBox":{"Height":0.0054344963,"Left":0.8535156,"Top":0.054344963,"Width":0.029296875},"Polygon":[{"X":0.8535156,"Y":0.054344963},{"X":0.8828125,"Y":0.054344963},{"X":0.8828125,"Y":0.059779458},{"X":0.8535156,"Y":0.059779458}]},"Id":29,"ParentId":4,"Type":"WORD"},{"Confidence":74.66605,"DetectedText":"sunny","Geometry":{"BoundingBox":{"Height":0.0054344963,"Left":0.8857422,"Top":0.054344963,"Width":0.02734375},"Polygon":[{"X":0.8857422,"Y":0.054344963},{"X":0.91308594,"Y":0.054344963},{"X":0.91308594,"Y":0.059779458},{"X":0.8857422,"Y":0.059779458}]},"Id":30,"ParentId":4,"Type":"WORD"},{"Confidence":95.44581,"DetectedText":"low","Geometry":{"BoundingBox":{"Height":0.004940451,"Left":0.91503906,"Top":0.053850915,"Width":0.015625},"Polygon":[{"X":0.91503906,"Y":0.053850915},{"X":0.93066406,"Y":0.053850915},{"X":0.93066406,"Y":0.05879137},{"X":0.91503906,"Y":0.05879137}]},"Id":31,"ParentId":4,"Type":"WORD"},{"Confidence":60.173195,"DetectedText":"humidity","Geometry":{"BoundingBox":{"Height":0.004940451,"Left":0.9326172,"Top":0.054344963,"Width":0.040039062},"Polygon":[{"X":0.9326172,"Y":0.054344963},{"X":0.97265625,"Y":0.054344963},{"X":0.97265625,"Y":0.059285413},{"X":0.9326172,"Y":0.059285413}]},"Id":32,"ParentId":4,"Type":"WORD"},{"Confidence":96.93357,"DetectedText":"high","Geometry":{"BoundingBox":{"Height":0.0059285415,"Left":0.8232422,"Top":0.059285413,"Width":0.020507812},"Polygon":[{"X":0.8232422,"Y":0.059285413},{"X":0.84375,"Y":0.059285413},{"X":0.84375,"Y":0.065213956},{"X":0.8232422,"Y":0.065213956}]},"Id":33,"ParentId":5,"Type":"WORD"},{"Confidence":66.5076,"DetectedText":"to","Geometry":{"BoundingBox":{"Height":0.004940451,"Left":0.84472656,"Top":0.059779458,"Width":0.0107421875},"Polygon":[{"X":0.84472656,"Y":0.059779458},{"X":0.85546875,"Y":0.059779458},{"X":0.85546875,"Y":0.06471991},{"X":0.84472656,"Y":0.06471991}]},"Id":34,"ParentId":5,"Type":"WORD"},{"Confidence":56.92976,"DetectedText":"Tonight","Geometry":{"BoundingBox":{"Height":0.0054344963,"Left":0.859375,"Top":0.059779458,"Width":0.034179688},"Polygon":[{"X":0.859375,"Y":0.059779458},{"X":0.8935547,"Y":0.059779458},{"X":0.8935547,"Y":0.065213956},{"X":0.859375,"Y":0.065213956}]},"Id":35,"ParentId":5,"Type":"WORD"},{"Confidence":96.93448,"DetectedText":"clear","Geometry":{"BoundingBox":{"Height":0.0054344963,"Left":0.89453125,"Top":0.059779458,"Width":0.022460938},"Polygon":[{"X":0.89453125,"Y":0.059779458},{"X":0.9169922,"Y":0.059779458},{"X":0.9169922,"Y":0.065213956},{"X":0.89453125,"Y":0.065213956}]},"Id":36,"ParentId":5,"Type":"WORD"},{"Confidence":67.89571,"DetectedText":"skies","Geometry":{"BoundingBox":{"Height":0.0054344963,"Left":0.91796875,"Top":0.059779458,"Width":0.024414062},"Polygon":[{"X":0.91796875,"Y":0.059779458},{"X":0.9423828,"Y":0.059779458},{"X":0.9423828,"Y":0.065213956},{"X":0.91796875,"Y":0.065213956}]},"Id":37,"ParentId":5,"Type":"WORD"},{"Confidence":96.395706,"DetectedText":"low","Geometry":{"BoundingBox":{"Height":0.004940451,"Left":0.9433594,"Top":0.059779458,"Width":0.016601562},"Polygon":[{"X":0.9433594,"Y":0.059779458},{"X":0.95996094,"Y":0.059779458},{"X":0.95996094,"Y":0.06471991},{"X":0.9433594,"Y":0.06471991}]},"Id":38,"ParentId":5,"Type":"WORD"},{"Confidence":74.20011,"DetectedText":"04","Geometry":{"BoundingBox":{"Height":0.0039523607,"Left":0.9580078,"Top":0.060273502,"Width":0.013671875},"Polygon":[{"X":0.9580078,"Y":0.060273502},{"X":0.9716797,"Y":0.060273502},{"X":0.9716797,"Y":0.06422587},{"X":0.9580078,"Y":0.06422587}]},"Id":39,"ParentId":5,"Type":"WORD"},{"Confidence":73.05161,"DetectedText":"Tomorrow","Geometry":{"BoundingBox":{"Height":0.0068321037,"Left":0.82305473,"Top":0.06491341,"Width":0.04826426},"Polygon":[{"X":0.82339287,"Y":0.06491341},{"X":0.871319,"Y":0.065586895},{"X":0.87098086,"Y":0.07174551},{"X":0.82305473,"Y":0.07107202}]},"Id":40,"ParentId":6,"Type":"WORD"},{"Confidence":94.53965,"DetectedText":"an","Geometry":{"BoundingBox":{"Height":0.004446406,"Left":0.87402344,"Top":0.066202044,"Width":0.0126953125},"Polygon":[{"X":0.87402344,"Y":0.066202044},{"X":0.88671875,"Y":0.066202044},{"X":0.88671875,"Y":0.070648454},{"X":0.87402344,"Y":0.070648454}]},"Id":41,"ParentId":6,"Type":"WORD"},{"Confidence":94.37382,"DetectedText":"abundance","Geometry":{"BoundingBox":{"Height":0.0064225863,"Left":0.8886719,"Top":0.0647199,"Width":0.049804688},"Polygon":[{"X":0.8886719,"Y":0.0647199},{"X":0.93847656,"Y":0.0647199},{"X":0.93847656,"Y":0.07114249},{"X":0.8886719,"Y":0.07114249}]},"Id":42,"ParentId":6,"Type":"WORD"},{"Confidence":98.41119,"DetectedText":"of","Geometry":{"BoundingBox":{"Height":0.004446406,"Left":0.9404297,"Top":0.065708,"Width":0.0107421875},"Polygon":[{"X":0.9404297,"Y":0.065708},{"X":0.9511719,"Y":0.065708},{"X":0.9511719,"Y":0.070154406},{"X":0.9404297,"Y":0.070154406}]},"Id":43,"ParentId":6,"Type":"WORD"},{"Confidence":42.77196,"DetectedText":"sun","Geometry":{"BoundingBox":{"Height":0.004446406,"Left":0.9550781,"Top":0.066202044,"Width":0.017578125},"Polygon":[{"X":0.9550781,"Y":0.066202044},{"X":0.97265625,"Y":0.066202044},{"X":0.97265625,"Y":0.070648454},{"X":0.9550781,"Y":0.070648454}]},"Id":44,"ParentId":6,"Type":"WORD"},{"Confidence":89.95746,"DetectedText":"humidity","Geometry":{"BoundingBox":{"Height":0.004940451,"Left":0.8232422,"Top":0.07163654,"Width":0.040039062},"Polygon":[{"X":0.8232422,"Y":0.07163654},{"X":0.86328125,"Y":0.07163654},{"X":0.86328125,"Y":0.07657699},{"X":0.8232422,"Y":0.07657699}]},"Id":45,"ParentId":7,"Type":"WORD"},{"Confidence":95.971664,"DetectedText":"remaining","Geometry":{"BoundingBox":{"Height":0.004940451,"Left":0.86621094,"Top":0.07163654,"Width":0.045898438},"Polygon":[{"X":0.86621094,"Y":0.07163654},{"X":0.9121094,"Y":0.07163654},{"X":0.9121094,"Y":0.07657699},{"X":0.86621094,"Y":0.07657699}]},"Id":46,"ParentId":7,"Type":"WORD"},{"Confidence":15.425128,"DetectedText":"byw.","Geometry":{"BoundingBox":{"Height":0.0067111785,"Left":0.9134731,"Top":0.070528455,"Width":0.020790203},"Polygon":[{"X":0.9145159,"Y":0.070528455},{"X":0.9342633,"Y":0.07143665},{"X":0.9332205,"Y":0.07723963},{"X":0.9134731,"Y":0.07633143}]},"Id":47,"ParentId":7,"Type":"WORD"},{"Confidence":98.22702,"DetectedText":"high","Geometry":{"BoundingBox":{"Height":0.0059285415,"Left":0.9345703,"Top":0.071142495,"Width":0.021484375},"Polygon":[{"X":0.9345703,"Y":0.071142495},{"X":0.9560547,"Y":0.071142495},{"X":0.9560547,"Y":0.07707103},{"X":0.9345703,"Y":0.07707103}]},"Id":48,"ParentId":7,"Type":"WORD"},{"Confidence":90.51558,"DetectedText":"-","Geometry":{"BoundingBox":{"Height":0.004940451,"Left":0.95996094,"Top":0.07163654,"Width":0.0126953125},"Polygon":[{"X":0.95996094,"Y":0.07163654},{"X":0.97265625,"Y":0.07163654},{"X":0.97265625,"Y":0.07657699},{"X":0.95996094,"Y":0.07657699}]},"Id":49,"ParentId":7,"Type":"WORD"},{"Confidence":62.73578,"DetectedText":"Weather","Geometry":{"BoundingBox":{"Height":0.004940451,"Left":0.82421875,"Top":0.07707103,"Width":0.037109375},"Polygon":[{"X":0.82421875,"Y":0.07707103},{"X":0.8613281,"Y":0.07707103},{"X":0.8613281,"Y":0.08201149},{"X":0.82421875,"Y":0.08201149}]},"Id":50,"ParentId":8,"Type":"WORD"},{"Confidence":97.14894,"DetectedText":"map","Geometry":{"BoundingBox":{"Height":0.004446406,"Left":0.86328125,"Top":0.07805913,"Width":0.018554688},"Polygon":[{"X":0.86328125,"Y":0.07805913},{"X":0.88183594,"Y":0.07805913},{"X":0.88183594,"Y":0.08250553},{"X":0.86328125,"Y":0.08250553}]},"Id":51,"ParentId":8,"Type":"WORD"},{"Confidence":98.57838,"DetectedText":"and","Geometry":{"BoundingBox":{"Height":0.004446406,"Left":0.88378906,"Top":0.07756508,"Width":0.016601562},"Polygon":[{"X":0.88378906,"Y":0.07756508},{"X":0.9003906,"Y":0.07756508},{"X":0.9003906,"Y":0.08201149},{"X":0.88378906,"Y":0.08201149}]},"Id":52,"ParentId":8,"Type":"WORD"},{"Confidence":81.26619,"DetectedText":"details","Geometry":{"BoundingBox":{"Height":0.0054344963,"Left":0.90234375,"Top":0.07707103,"Width":0.03125},"Polygon":[{"X":0.90234375,"Y":0.07707103},{"X":0.93359375,"Y":0.07707103},{"X":0.93359375,"Y":0.08250553},{"X":0.90234375,"Y":0.08250553}]},"Id":53,"ParentId":8,"Type":"WORD"},{"Confidence":93.68312,"DetectedText":"Page","Geometry":{"BoundingBox":{"Height":0.0054344963,"Left":0.9345703,"Top":0.07707103,"Width":0.0234375},"Polygon":[{"X":0.9345703,"Y":0.07707103},{"X":0.9580078,"Y":0.07707103},{"X":0.9580078,"Y":0.08250553},{"X":0.9345703,"Y":0.08250553}]},"Id":54,"ParentId":8,"Type":"WORD"},{"Confidence":68.09148,"DetectedText":"a","Geometry":{"BoundingBox":{"Height":0.0039523607,"Left":0.9580078,"Top":0.07756508,"Width":0.013671875},"Polygon":[{"X":0.9580078,"Y":0.07756508},{"X":0.9716797,"Y":0.07756508},{"X":0.9716797,"Y":0.08151744},{"X":0.9580078,"Y":0.08151744}]},"Id":55,"ParentId":8,"Type":"WORD"},{"Confidence":89.501175,"DetectedText":"VOL.CLXII","Geometry":{"BoundingBox":{"Height":0.008363244,"Left":0.024251966,"Top":0.09233586,"Width":0.070590846},"Polygon":[{"X":0.024516083,"Y":0.09233586},{"X":0.09484281,"Y":0.09294928},{"X":0.09457869,"Y":0.100699104},{"X":0.024251966,"Y":0.10008568}]},"Id":56,"ParentId":9,"Type":"WORD"},{"Confidence":88.42263,"DetectedText":"...","Geometry":{"BoundingBox":{"Height":0.0039523607,"Left":0.09472656,"Top":0.094856665,"Width":0.0146484375},"Polygon":[{"X":0.09472656,"Y":0.094856665},{"X":0.109375,"Y":0.094856665},{"X":0.109375,"Y":0.09880902},{"X":0.09472656,"Y":0.09880902}]},"Id":57,"ParentId":9,"Type":"WORD"},{"Confidence":85.20023,"DetectedText":"No.","Geometry":{"BoundingBox":{"Height":0.0059285415,"Left":0.111328125,"Top":0.09337453,"Width":0.021484375},"Polygon":[{"X":0.111328125,"Y":0.09337453},{"X":0.1328125,"Y":0.09337453},{"X":0.1328125,"Y":0.09930307},{"X":0.111328125,"Y":0.09930307}]},"Id":58,"ParentId":9,"Type":"WORD"},{"Confidence":98.80854,"DetectedText":"56238","Geometry":{"BoundingBox":{"Height":0.0064225863,"Left":0.13476562,"Top":0.09337453,"Width":0.040039062},"Polygon":[{"X":0.13476562,"Y":0.09337453},{"X":0.17480469,"Y":0.09337453},{"X":0.17480469,"Y":0.099797115},{"X":0.13476562,"Y":0.099797115}]},"Id":59,"ParentId":9,"Type":"WORD"},{"Confidence":98.19324,"DetectedText":"$2.50","Geometry":{"BoundingBox":{"Height":0.0054344963,"Left":0.9404297,"Top":0.09337453,"Width":0.032226562},"Polygon":[{"X":0.9404297,"Y":0.09337453},{"X":0.97265625,"Y":0.09337453},{"X":0.97265625,"Y":0.09880902},{"X":0.9404297,"Y":0.09880902}]},"Id":60,"ParentId":10,"Type":"WORD"},{"Confidence":28.293306,"DetectedText":"©2013","Geometry":{"BoundingBox":{"Height":0.0039523607,"Left":0.21777344,"Top":0.095350705,"Width":0.0234375},"Polygon":[{"X":0.21777344,"Y":0.095350705},{"X":0.24121094,"Y":0.095350705},{"X":0.24121094,"Y":0.09930307},{"X":0.21777344,"Y":0.09930307}]},"Id":61,"ParentId":11,"Type":"WORD"},{"Confidence":97.839745,"DetectedText":"The","Geometry":{"BoundingBox":{"Height":0.0039523607,"Left":0.24511719,"Top":0.095350705,"Width":0.013671875},"Polygon":[{"X":0.24511719,"Y":0.095350705},{"X":0.25878906,"Y":0.095350705},{"X":0.25878906,"Y":0.09930307},{"X":0.24511719,"Y":0.09930307}]},"Id":62,"ParentId":11,"Type":"WORD"},{"Confidence":87.71357,"DetectedText":"New","Geometry":{"BoundingBox":{"Height":0.0039523607,"Left":0.25878906,"Top":0.095350705,"Width":0.015625},"Polygon":[{"X":0.25878906,"Y":0.095350705},{"X":0.27441406,"Y":0.095350705},{"X":0.27441406,"Y":0.09930307},{"X":0.25878906,"Y":0.09930307}]},"Id":63,"ParentId":11,"Type":"WORD"},{"Confidence":94.62046,"DetectedText":"York","Geometry":{"BoundingBox":{"Height":0.0039523607,"Left":0.27539062,"Top":0.095350705,"Width":0.016601562},"Polygon":[{"X":0.27539062,"Y":0.095350705},{"X":0.2919922,"Y":0.095350705},{"X":0.2919922,"Y":0.09930307},{"X":0.27539062,"Y":0.09930307}]},"Id":64,"ParentId":11,"Type":"WORD"},{"Confidence":95.171234,"DetectedText":"Times","Geometry":{"BoundingBox":{"Height":0.0039523607,"Left":0.29101562,"Top":0.095350705,"Width":0.022460938},"Polygon":[{"X":0.29101562,"Y":0.095350705},{"X":0.31347656,"Y":0.095350705},{"X":0.31347656,"Y":0.09930307},{"X":0.29101562,"Y":0.09930307}]},"Id":65,"ParentId":11,"Type":"WORD"},{"Confidence":99.63658,"DetectedText":"NEW","Geometry":{"BoundingBox":{"Height":0.0054344963,"Left":0.3720703,"Top":0.09386857,"Width":0.030273438},"Polygon":[{"X":0.3720703,"Y":0.09386857},{"X":0.40234375,"Y":0.09386857},{"X":0.40234375,"Y":0.09930307},{"X":0.3720703,"Y":0.09930307}]},"Id":66,"ParentId":12,"Type":"WORD"},{"Confidence":59.056656,"DetectedText":"YORK.","Geometry":{"BoundingBox":{"Height":0.0064225863,"Left":0.40527344,"Top":0.09337453,"Width":0.041015625},"Polygon":[{"X":0.40527344,"Y":0.09337453},{"X":0.44628906,"Y":0.09337453},{"X":0.44628906,"Y":0.099797115},{"X":0.40527344,"Y":0.099797115}]},"Id":67,"ParentId":12,"Type":"WORD"},{"Confidence":95.54298,"DetectedText":"SATURDAY","Geometry":{"BoundingBox":{"Height":0.006718113,"Left":0.44714743,"Top":0.09330087,"Width":0.07152069},"Polygon":[{"X":0.44734895,"Y":0.09330087},{"X":0.5186681,"Y":0.09390221},{"X":0.5184666,"Y":0.100018986},{"X":0.44714743,"Y":0.09941764}]},"Id":68,"ParentId":12,"Type":"WORD"},{"Confidence":98.545975,"DetectedText":"AUGUST","Geometry":{"BoundingBox":{"Height":0.0059285415,"Left":0.52246094,"Top":0.09337453,"Width":0.053710938},"Polygon":[{"X":0.52246094,"Y":0.09337453},{"X":0.5761719,"Y":0.09337453},{"X":0.5761719,"Y":0.09930307},{"X":0.52246094,"Y":0.09930307}]},"Id":69,"ParentId":12,"Type":"WORD"},{"Confidence":88.962425,"DetectedText":"242013","Geometry":{"BoundingBox":{"Height":0.0064225863,"Left":0.5771484,"Top":0.09337453,"Width":0.049804688},"Polygon":[{"X":0.5771484,"Y":0.09337453},{"X":0.62695307,"Y":0.09337453},{"X":0.62695307,"Y":0.099797115},{"X":0.5771484,"Y":0.099797115}]},"Id":70,"ParentId":12,"Type":"WORD"},{"Confidence":17.169783,"DetectedText":"was","Geometry":{"BoundingBox":{"Height":0.007962463,"Left":0.21459465,"Top":0.2984465,"Width":0.026931204},"Polygon":[{"X":0.21459465,"Y":0.3013196},{"X":0.2392043,"Y":0.2984465},{"X":0.24152586,"Y":0.30353585},{"X":0.2169162,"Y":0.30640897}]},"Id":71,"ParentId":13,"Type":"WORD"},{"Confidence":22.044811,"DetectedText":"-","Geometry":{"BoundingBox":{"Height":0.0066036847,"Left":0.23741867,"Top":0.29658356,"Width":0.014420471},"Polygon":[{"X":0.23741867,"Y":0.2992459},{"X":0.24794377,"Y":0.29658356},{"X":0.25183913,"Y":0.30052492},{"X":0.24131404,"Y":0.30318725}]},"Id":72,"ParentId":13,"Type":"WORD"},{"Confidence":17.657381,"DetectedText":"OF","Geometry":{"BoundingBox":{"Height":0.012311243,"Left":0.2270902,"Top":0.31087312,"Width":0.036835227},"Polygon":[{"X":0.2270902,"Y":0.31632233},{"X":0.25940412,"Y":0.31087312},{"X":0.26392543,"Y":0.31773517},{"X":0.2316115,"Y":0.32318437}]},"Id":73,"ParentId":14,"Type":"WORD"}],"TextModelVersion":"3.0","ResultMetadata":{}}},"id":"bac5385993c1b04562993a8afeef545aa81c9d7ea92809d3d2f98328022a53e93f5b236f4f4d3199a526ec45dc947757f9a0e0b9d1dbd82297e1997dd11d8d88.png.aug","type":"image"}}`;
+            // aug = aug.replaceAll('""', '"');
+
+            var sig = ``;
+
+            this.aioToSign = aio;
+
+            var aio_ = JSON.parse(aio);
+            var aug_ = {};
+
+            try {
+              aug_ = JSON.parse(aug);
+            } catch(e) {
+              console.log(" > error:" + e.message)
+            }
+
+            this.aio = aio_;
+            this.sig = sig;
+            this.aug = aug;
+
+            aio_.elements.forEach((item, i) => {
+              var type = item.type;
+              var id = item.param;
+              if (type == "image") {
+                if (!id.endsWith(".aug")) {
+                  id = id + ".aug";
+                }
+              }
+
+              if (aug_[id] !== undefined) {
+                var augment = aug_[id].augment;
+                item["augment"] = augment;
+              }
+
+              this.addElement(item.type, item.param, item.param, item);
+            });
+            aio_.recipients.forEach((item, i) => {
+              this.addRecipient(item);
+            });
+
+            // app::public
+            if (this.isRecipient("app::public")) {
+              // public.json
+              var parts = window.location.href.split("/");
+              var uuid = this.uuid('author');
+              var aioid = parts[parts.length - 1].replace(".htm", "");
+              var cid = parts[parts.length - 2];
+
+              var url = "https://memori.as/app::public/" + uuid + "/www/" + aioid + "/public.json";
+
+              fetch(url)
+              .then(function (response) {
+               // The API call was successful!
+                return response.json();
+              }).then(function (data) {
+                M.get("#www").setAttribute("href", data.www);
+                M.get("#ipfs").setAttribute("href", data.ipfs);
+                M.get("#mem").setAttribute("href", data.mem);
+
+                var cod = M.get("#cod");
+                var html = cod.innerHTML;
+                html = html.replace("--verify IPFS_URL", "--verify " + data.ipfs);
+                cod.innerHTML = html;
+
+                var url = M.get("#ipfs-url");
+                url.innerHTML = data.ipfs;
+
+              }).catch(function (err) {
+                // There was an error
+                console.warn('Something went wrong.', err);
+              }).finally(() => {
+              });
+            }
+          },
+          title: function(aio) {
+            return M.title(aio);
+          },
+          tags: function(aio) {
+            return M.tags(aio);
+          },
+          addElement: function(type, f, name, el) {
+            var controls = "";
+            var element = "";
+            var value = "";
+
+            f = "assets/" + f;
+
+            if (el === undefined) {
+              this.e = this.e + 1;
+            } else {
+              this.e = this.e + 1;
+              value = name;
+            }
+
+            if (type == "text") {
+              controls = '<div id="controls-' + this.e + '" class="field has-addons controls"><p class="control"><a class="button is-delete is-small" onclick="removeElement(' + "'" + type + "'" + ', ' + this.e + ')" onMouseOver="highlightElement(' + "'" + type + "'" + ', ' + this.e + ')" onMouseOut="removeHighlightElement(' + "'" + type + "'" + ', ' + this.e + ')"><span class="icon is-small"><i class="fas fa-times"></i></span></a></p></div>';
+              element = controls + '<textarea id="text-' + this.e + '" readonly class="element textarea" rows="1" placeholder="Type something! ex: @leozeba what are you doing?">' + value + '</textarea>';
+
+              if (el != undefined && el.augment != undefined) {
+                var tags = [];
+
+                var cloud = el.augment.cloud;
+                var words = Object.keys(cloud);
+                var counts = [];
+                var keys = el.augment.keys;
+
+                for (var i = 0; i < words.length; i++) {
+                  counts[i] = cloud[words[i]];
+                }
+
+                for (var i = 0; i < keys.length; i++) {
+                  var parts = keys[i].split("-");
+                  var count = parseInt(parts[0]);
+                  var word = parts[1];
+                  var tag = '<span class="tag augment-label is-medium is-rounded" style="border-bottom-left-radius: 10rem; border-top-left-radius: 10rem; padding-right: 0; font-weight: 600;">' + word + '</span><span class="tag is-medium" style="margin-right: 0.5rem; border-bottom-right-radius: 50%; border-top-right-radius: 50%;">' + count + '</span>';
+                  tags.push(tag);
+                }
+
+                element = element + '<div class="control-' + this.e + '"><div id="tags-' + this.e + '" class="tags has-addons">' + tags.join("") + '</div></div>';
+              }
+            }
+
+            if (type == "image") {
+              controls = '<div id="controls-' + this.e + '" class="field has-addons controls"><p class="control"><a class="button is-delete is-small" onclick="removeElement(' + "'" + type + "'" + ', ' + this.e + ')" onMouseOver="highlightElement(' + "'" + type + "'" + ', ' + this.e + ')" onMouseOut="removeHighlightElement(' + "'" + type + "'" + ', ' + this.e + ')"><span class="icon is-small"><i class="fas fa-times"></i></span></a></p></div>';
+              element = controls + '<img id="image-' + this.e + '" class="element image" src="' + f + '.aug"/>';
+
+              if (el != undefined && el.augment != undefined) {
+                var tags = [];
+
+                if (el.augment.labels) {
+                  var colors = el.augment.labels.ImageProperties.DominantColors;
+
+                  for (var i = 0; i < colors.length; i++) {
+                    var tag = '<span class="tag augment-label color is-medium is-rounded" style="background:' + colors[i].HexCode + ';">' + '<a href="search.html?q=' + colors[i].CSSColor + '">' + '#' + '</a>' + '</span>';
+                    tags.push(tag);
+                  }
+
+                  for (var i = 0; i < colors.length; i++) {
+                    var tag = '<span class="tag augment-label css is-medium is-rounded">' + '<a href="search.html?q=' + colors[i].CSSColor + '">#' + colors[i].CSSColor + '</a>' + '</span>';
+                    tags.push(tag);
+                  }
+
+                  var labels = el.augment.labels.Labels;
+
+                  for (var i = 0; i < labels.length; i++) {
+                    var tag = '<span class="tag augment-label is-medium is-rounded">' + labels[i].Name + '</span>';
+                    tags.push(tag);
+                  }
+                }
+
+                if (el.augment.text) {
+                  var text = el.augment.text.TextDetections;
+                  for (var i = 0; i < text.length; i++) {
+                    var tag = '<span class="tag augment-text is-medium is-rounded">' + text[i].DetectedText + '</span>';
+                    if (tags.indexOf(tag) == -1) {
+                      tags.push(tag);
+                    }
+                  }
+                }
+
+                if (el.augment.faces) {
+                  var faces = el.augment.faces.FaceDetails;
+                  for (var i = 0; i < faces.length; i++) {
+                    var details = faces[i];
+                    var keys = Object.keys(details);
+
+                    var tag = '<span class="tag augment-face is-medium" style="background: transparent !important; border: none !important; color: var(--color-0) !important;"><span class="icon is-small"><i class="fas fa-user"></i></span></span>';
+                    tags.push(tag);
+
+                    for (var j = 0; j < keys.length; j++) {
+                      var key = keys[j];
+
+                      // AgeRange
+                      if (key == "AgeRange") {
+                        var detail = details[key];
+                        var tag = '<span class="tag augment-face age is-medium is-rounded">' + detail.Low + '-' + detail.High + '</span>';
+                        tags.push(tag);
+                      }
+
+                      // Emotions
+                      if (key == "Emotions") {
+                        var array = details[key];
+
+                        for (var k = 0; k < array.length; k++) {
+                          var item = array[k];
+                          if (item.Type) {
+                            if (item.Confidence > 70.0) {
+                              var tag = '<span class="tag augment-face emotion is-medium is-rounded">' + item.Type + '</span>';
+                              tags.push(tag);
+                            }
+                          }
+                        }
+                      }
+
+                      // Gender
+                      if (key == "Gender") {
+                        var item = details[key];
+                        if (item.Value) {
+                          if (item.Confidence > 70.0) {
+                            var tag = '<span class="tag augment-face gender is-medium is-rounded">' + item.Value + '</span>';
+                            tags.push(tag);
+                          }
+                        }
+                      }
+
+                      // Landmarks
+                      if (key == "Landmarks") {
+                        var item = details[key];
+                        // console.log(item);
+                      }
+
+                      // Pose
+                      if (key == "Pose") {
+                        var item = details[key];
+                        // console.log(item);
+                      }
+
+                      // Quality
+                      if (key == "Quality") {
+                        var item = details[key];
+                        // console.log(item);
+                      }
+
+                      // Beard, Eyeglasses, EyesOpen, MouthOpen, Mustache, Smile, Sunglasses
+                      var value = details[key].Value;
+                      if (value == true) {
+                        var tag = '<span class="tag augment-face is-medium is-rounded">' + keys[j] + '</span>';
+                        tags.push(tag);
+                      }
+                    }
+                  }
+
+                  element = element + '<div id="tags-' + this.e + '" class="tags">' + tags.join("") + '</div>';
+                }
+              }
+            }
+
+            if (type == "video") {
+              controls = '<div id="controls-' + this.e + '" class="field has-addons controls" style="margin-bottom: 0.75rem !important;"><p class="control"><a class="button is-delete is-small" onclick="removeElement(' + "'" + type + "'" + ', ' + this.e + ')" onMouseOver="highlightElement(' + "'" + type + "'" + ', ' + this.e + ')" onMouseOut="removeHighlightElement(' + "'" + type + "'" + ', ' + this.e + ')"><span class="icon is-small"><i class="fas fa-times"></i></span></a></p></div>'
+              element = controls + '<video id="video-' + this.e + '" class="element video" controls><source src="' + f + '" type="video/mp4"></video>'
+            }
+
+            if (type == "file") {
+              controls = '<div id="controls-' + this.e + '" class="field has-addons controls"><p class="control"><a class="button is-delete is-small" onclick="removeElement(' + "'" + type + "'" + ', ' + this.e + ')" onMouseOver="highlightElement(' + "'" + type + "'" + ', ' + this.e + ')" onMouseOut="removeHighlightElement(' + "'" + type + "'" + ', ' + this.e + ')"><span class="icon is-small"><i class="fas fa-times"></i></span></a></p></div>';
+              element = controls + '<p id="file-' + this.e + '" class="element file" style="font-size: 1.85rem;" data-name="' + (el && el.data && el.data["name"] ? el.data["name"] : name) + '" data-content="' + f + '"><a href="' + f + '"><span class="icon is-large"><i class="fas fa-paperclip fa-lg"></span></i>' + (el && el.data && el.data["name"] ? el.data["name"] : name) + '</a></p>'
+            }
+
+            var elements = M.get("#elements");
+            elements.insertAdjacentHTML("beforeend", element);
+
+            // Wordcloud
+            if (counts !== undefined) {
+              var id = this.e;
+              var max = counts.reduce(function(a, b) {
+                return Math.max(a, b);
+              });
+              var containerWidth = +d3.select(".container").style("width").slice(0, -2);
+              var cssFill = getComputedStyle(M.get("body")).getPropertyValue("--color-0");
+              var layout = d3.layout.cloud()
+                .size([containerWidth, 500])
+                .words(words.map(function(d, index) {
+                  return {text: d, size: (cloud[d] / max) * 90, test: "haha"};
+                }))
+                .padding(5)
+                .rotate(function() { return ~~(Math.random() * 2) * 90; })
+                .font("Impact")
+                .fontSize(function(d) { return d.size; })
+                .on("end", function draw(words) {
+                  d3.select(".control-" + id)
+                  .append("svg")
+                  .attr("width", containerWidth)
+                  .attr("height", layout.size()[1])
+                  .append("g")
+                  .attr("transform", "translate(" + layout.size()[0] / 2 + "," + layout.size()[1] / 2 + ")")
+                  .selectAll("text")
+                  .data(words)
+                  .enter()
+                  .append("text")
+                  .style("font-size", function(d) { return d.size + "px"; })
+                  .style("font-family", "Impact")
+                  .style("fill", cssFill)
+                  .attr("text-anchor", "middle")
+                  .attr("transform", function(d) {
+                    return "translate(" + [d.x, d.y] + ")rotate(" + d.rotate + ")";
+                  })
+                  .text(function(d) { return d.text; });
+                });
+              layout.start();
+            }
+
+            autosize(document.querySelectorAll("textarea"));
+
+            // this.showControls("#controls-" + this.e);
+            this.focusOn("#" + type + "-" + this.e);
+          },
+          focusOn: function(element) {
+            M.get(element).focus();
+          },
+          rotate: function() {
+            var el = M.get(".element.image");
+            if (el !== undefined) {
+              var transform = el.style.transform;
+              console.log(transform);
+              if (transform.indexOf("-90") > 0) {
+                transform = "rotate(-180deg)";
+              } else if (transform.indexOf("-180") > 0) {
+                transform = "rotate(-270deg)";
+              } else if (transform.indexOf("-270") > 0) {
+                transform = "rotate(0deg)";
+              } else {
+                transform = "rotate(-90deg)";
+              }
+              el.style.transform = transform;
+            }
+          },
+          uuid: function(type) {
+            if (type == "author") {
+              return this.aio.author;
+            }
+            return M.storage("memori.as-m-uuid");
+          },
+          addRecipient: function(uuid) {
+            for (var i = 0; i < this.accounts.length; i++) {
+              var account = this.accounts[i];
+              if (account.auid == uuid) {
+                this.accounts.splice(i, 1);
+                this.recipients.push(account);
+                break;
+              }
+            }
+          },
+          isRecipient: function(account) {
+            var isRecipient = false;
+            for (var i = 0; i < this.aio.recipients.length; i++) {
+              var recipient = this.aio.recipients[i];
+              if (recipient == account) {
+                isRecipient = true;
+                break;
+              }
+            }
+            if (isRecipient == false) {
+              if (this.uuid() == account) {
+                isRecipient = true;
+              }
+            }
+            return isRecipient;
+          },
+          accountPicture: function(recipient) {
+            var a = "assets/recipient--" + recipient.replace("::", "--") + "-picture.png";
+            return a;
+          },
+          account: function(account) {
+            var r;
+            for (var i = 0; i < this.accounts.length; i++) {
+              var recipient = this.accounts[i];
+              if (recipient["m-auid"] == account) {
+                r = recipient;
+                break;
+              }
+            }
+            if (r == undefined) {
+              r = {};
+            }
+            return r;
+          },
+          picture: function() {
+            return M.storage("memori.as-m-picture");
+          },
+          showCode: function() {
+            M.get("#elements-container").style.display = "none";
+            M.get("#code-container").style.display = "block";
+
+            M.get("#show-code").style.display = "none";
+            M.get("#hide-code").style.display = "block";
+
+            var aio = JSON.stringify(JSON.parse(this.aioToSign), null, 4);
+            var sig = this.sig;
+            var aug = JSON.stringify(JSON.parse(this.aug), null, 4);
+
+            M.get("#aio").innerHTML = aio;
+            if (sig != "") {
+              M.get("#sig").innerHTML = sig;
+            }
+            if (aug != "") {
+              M.get("#aug").innerHTML = aug;
+            }
+          },
+          hideCode: function() {
+            M.get("#elements-container").style.display = "block";
+            M.get("#code-container").style.display = "none";
+
+            M.get("#show-code").style.display = "block";
+            M.get("#hide-code").style.display = "none";
+          },
+          replyProfileImageUrl: function(reply) {
+            var author = this.replyAuthor(reply);
+            return this.accountPicture(author);
+          },
+          replyAuthor: function(reply) {
+            var author = "";
+            var parts = reply.split("&");
+            for (var i = 0; i < parts.length; i++) {
+              var p = parts[i];
+              if (p.indexOf("author=") >= 0) {
+                author = p.replace("author=", "");
+                break;
+              }
+            }
+
+            return author;
+          },
+          replyUpdated: function(reply) {
+            var updated = "";
+            var parts = reply.split("&");
+            for (var i = 0; i < parts.length; i++) {
+              var p = parts[i];
+              if (p.indexOf("updated=") >= 0) {
+                updated = p.replace("updated=", "");
+                break;
+              }
+            }
+
+            return updated;
+          },
+          replyTitle: function(reply) {
+            var title = "";
+            var parts = reply.split("&");
+            for (var i = 0; i < parts.length; i++) {
+              var p = parts[i];
+              if (p.indexOf("title=") >= 0) {
+                title = p.replace("title=", "");
+                break;
+              }
+            }
+
+            return title.split(" #")[0];
+          },
+          replyAio: function(reply) {
+            var aio = "";
+            var parts = reply.split("&");
+            for (var i = 0; i < parts.length; i++) {
+              var p = parts[i];
+              if (p.indexOf("aio=") >= 0) {
+                aio = p.replace("aio=", "");
+                break;
+              }
+            }
+
+            return aio;
+          },
+          showContent: function() {
+            M.get("#the-content").style.display = "block";
+
+            M.get("#hide-content").style.display = "inline";
+            M.get("#show-content").style.display = "none";
+          },
+          hideContent: function() {
+            M.get("#the-content").style.display = "none";
+
+            M.get("#hide-content").style.display = "none";
+            M.get("#show-content").style.display = "inline";
+          }
+        },
+        mounted() {
+          this.minit();
+          var message = M.params("message");
+          if (message !== null) {
+            M.showMessage("#app", "is-success", message);
+          }
+        },
+        updated() {
+        }
+      });
+    });
+  </script>
+
+  <script>
+    M.theme();
+  </script>
+
+</body>
+</html>
